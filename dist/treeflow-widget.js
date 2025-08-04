@@ -10,6 +10,8 @@ class TreeFlowWidget extends HTMLElement {
     this.isRecording = false;
     this.mediaRecorder = null;
     this.audioChunks = [];
+    this.lastRequest = null;
+    this.lastResponse = null;
   }
 
   connectedCallback() {
@@ -20,9 +22,11 @@ class TreeFlowWidget extends HTMLElement {
     if (this.config.maximizeOnStart) {
       setTimeout(() => this.open(), 100);
     }
-    
-    if (this.config.startEvents && this.config.startEvents.length > 0) {
-      setTimeout(() => this.sendStartEvents(), 500);
+    // Send start event if configured (either via event attribute or startEvents)
+    if (this.config.event) {
+      setTimeout(() => this.sendStartEvent(this.config.event), 500);
+    } else if (this.config.startEvents && this.config.startEvents.length > 0) {
+      setTimeout(() => this.sendStartEvent(this.config.startEvents[0]), 500);
     }
     
     if (this.config.autoWelcome && this.config.welcomeMessage) {
@@ -42,12 +46,15 @@ class TreeFlowWidget extends HTMLElement {
       autoWelcome: this.getAttribute('auto-welcome') === 'true' || globalConfig.autoWelcome || false,
       welcomeMessage: this.getAttribute('welcome-message') || globalConfig.welcomeMessage || '¡Hola! ¿En qué puedo ayudarte?',
       placeholder: this.getAttribute('placeholder') || globalConfig.placeholder || 'Escribe tu mensaje...',
+      event: this.getAttribute('event') || globalConfig.event || null,
       startEvents: globalConfig.startEvents || [],
       maximizeOnStart: this.getAttribute('maximize-on-start') === 'true' || globalConfig.maximizeOnStart || false,
       fileUpload: this.getAttribute('file-upload') === 'true' || globalConfig.fileUpload || false,
       microphone: this.getAttribute('microphone') === 'true' || globalConfig.microphone || false,
       maxFileSize: parseInt(this.getAttribute('max-file-size')) || globalConfig.maxFileSize || 5242880,
-      responseDelay: parseInt(this.getAttribute('response-delay')) || globalConfig.responseDelay || 1500
+      debug: this.getAttribute('debug') === 'true' || globalConfig.debug || false,
+      responseDelay: this.getAttribute('response-delay') === 'true' || globalConfig.responseDelay || false,
+      responseDelaySeconds: parseInt(this.getAttribute('response-delay-seconds')) || globalConfig.responseDelaySeconds || 1500
     };
   }
 
@@ -313,6 +320,46 @@ class TreeFlowWidget extends HTMLElement {
           gap: var(--tfw-spacing-sm);
         }
         
+        .debug-panel {
+          background: rgba(0, 0, 0, 0.05);
+          border-top: 1px solid var(--tfw-border-color);
+          padding: var(--tfw-spacing-sm);
+          display: none;
+        }
+        
+        .debug-panel.show {
+          display: block;
+        }
+        
+        .debug-btn {
+          background: #6b7280;
+          color: white;
+          border: none;
+          padding: 4px 8px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 12px;
+          margin-right: var(--tfw-spacing-sm);
+        }
+        
+        .debug-btn:hover {
+          background: #4b5563;
+        }
+        
+        .debug-content {
+          background: #f8f9fa;
+          border: 1px solid #e9ecef;
+          border-radius: 4px;
+          padding: var(--tfw-spacing-sm);
+          margin-top: var(--tfw-spacing-sm);
+          font-family: 'Courier New', monospace;
+          font-size: 12px;
+          max-height: 200px;
+          overflow-y: auto;
+          white-space: pre-wrap;
+          word-break: break-all;
+        }
+        
         .input-actions {
           display: flex;
           flex-direction: column;
@@ -442,6 +489,12 @@ class TreeFlowWidget extends HTMLElement {
           </div>
         </div>
         
+        <div class="debug-panel ${!this.config.debug ? 'hidden' : ''}" id="debugPanel">
+          <button class="debug-btn" id="showRequestBtn">Ver Request</button>
+          <button class="debug-btn" id="showResponseBtn">Ver Response</button>
+          <div class="debug-content hidden" id="debugContent"></div>
+        </div>
+        
         <div class="chat-input-container">
           <div class="input-actions">
             <button class="input-btn ${!this.config.fileUpload ? 'hidden' : ''}" id="fileBtn" title="Adjuntar archivo">📎</button>
@@ -476,6 +529,9 @@ class TreeFlowWidget extends HTMLElement {
     const fileBtn = this.shadowRoot.getElementById('fileBtn');
     const micBtn = this.shadowRoot.getElementById('micBtn');
     const fileInput = this.shadowRoot.getElementById('fileInput');
+    const showRequestBtn = this.shadowRoot.getElementById('showRequestBtn');
+    const showResponseBtn = this.shadowRoot.getElementById('showResponseBtn');
+    const debugContent = this.shadowRoot.getElementById('debugContent');
 
     toggleBtn.addEventListener('click', () => this.toggle());
     closeBtn.addEventListener('click', () => this.close());
@@ -500,6 +556,11 @@ class TreeFlowWidget extends HTMLElement {
 
     if (this.config.microphone) {
       micBtn.addEventListener('click', () => this.handleMicrophone());
+    }
+    
+    if (this.config.debug) {
+      showRequestBtn.addEventListener('click', () => this.showDebugInfo('request'));
+      showResponseBtn.addEventListener('click', () => this.showDebugInfo('response'));
     }
   }
 
@@ -560,8 +621,9 @@ class TreeFlowWidget extends HTMLElement {
     try {
       this.showTyping();
       
-      if (this.config.responseDelay > 0) {
-        await this.delay(this.config.responseDelay);
+      // Add response delay if configured
+      if (this.config.responseDelay && this.config.responseDelaySeconds > 0) {
+        await this.delay(this.config.responseDelaySeconds);
       }
       
       const response = await this.callBackend(message);
@@ -658,13 +720,16 @@ class TreeFlowWidget extends HTMLElement {
     }
   }
 
-  async sendStartEvents() {
-    for (const event of this.config.startEvents) {
-      try {
-        await this.callBackend(event, true);
-      } catch (error) {
-        console.error('Error sending start event:', event, error);
+  async sendStartEvent(eventName) {
+    if (!eventName) return;
+    
+    try {
+      const response = await this.callBackendEvent(eventName);
+      if (response.message) {
+        this.addMessage(response.message, 'bot', response.suggestions);
       }
+    } catch (error) {
+      console.error('Error sending start event:', eventName, error);
     }
   }
 
@@ -683,6 +748,11 @@ class TreeFlowWidget extends HTMLElement {
       is_start_event: isStartEvent
     };
 
+    // Store request for debug
+    if (this.config.debug) {
+      this.lastRequest = requestPayload;
+    }
+
     const response = await fetch(this.config.endpoint, {
       method: 'POST',
       headers: {
@@ -696,6 +766,57 @@ class TreeFlowWidget extends HTMLElement {
     }
 
     const data = await response.json();
+    
+    // Store response for debug
+    if (this.config.debug) {
+      this.lastResponse = data;
+    }
+    
+    return {
+      message: data.response?.value || data.message || 'Sin respuesta',
+      suggestions: data.suggestions || data.response?.suggestions || []
+    };
+  }
+
+  async callBackendEvent(eventName) {
+    this.config = this.getConfiguration();
+    
+    if (!this.config.endpoint) {
+      throw new Error('No endpoint configured');
+    }
+
+    const requestPayload = {
+      type: 'event',
+      value: eventName,
+      tree_id: this.config.treeId,
+      session_id: this.sessionId
+    };
+
+    console.log('Sending start event:', requestPayload);
+
+    // Store request for debug
+    if (this.config.debug) {
+      this.lastRequest = requestPayload;
+    }
+
+    const response = await fetch(this.config.endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestPayload)
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    // Store response for debug
+    if (this.config.debug) {
+      this.lastResponse = data;
+    }
     
     return {
       message: data.response?.value || data.message || 'Sin respuesta',
@@ -774,6 +895,28 @@ class TreeFlowWidget extends HTMLElement {
 
   getMessages() {
     return [...this.messages];
+  }
+
+  showDebugInfo(type) {
+    const debugContent = this.shadowRoot.getElementById('debugContent');
+    
+    if (type === 'request') {
+      if (this.lastRequest) {
+        debugContent.textContent = JSON.stringify(this.lastRequest, null, 2);
+        debugContent.classList.remove('hidden');
+      } else {
+        debugContent.textContent = 'No hay request disponible';
+        debugContent.classList.remove('hidden');
+      }
+    } else if (type === 'response') {
+      if (this.lastResponse) {
+        debugContent.textContent = JSON.stringify(this.lastResponse, null, 2);
+        debugContent.classList.remove('hidden');
+      } else {
+        debugContent.textContent = 'No hay response disponible';
+        debugContent.classList.remove('hidden');
+      }
+    }
   }
 }
 
