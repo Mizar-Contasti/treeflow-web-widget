@@ -1,2 +1,783 @@
-/*! For license information please see treeflow-widget.js.LICENSE.txt */
-!function(t,n){"object"==typeof exports&&"object"==typeof module?module.exports=n():"function"==typeof define&&define.amd?define([],n):"object"==typeof exports?exports.TreeFlowWidget=n():t.TreeFlowWidget=n()}(this,()=>(()=>{"use strict";var t={d:(n,e)=>{for(var o in e)t.o(e,o)&&!t.o(n,o)&&Object.defineProperty(n,o,{enumerable:!0,get:e[o]})},o:(t,n)=>Object.prototype.hasOwnProperty.call(t,n),r:t=>{"undefined"!=typeof Symbol&&Symbol.toStringTag&&Object.defineProperty(t,Symbol.toStringTag,{value:"Module"}),Object.defineProperty(t,"__esModule",{value:!0})}},n={};function e(t){return e="function"==typeof Symbol&&"symbol"==typeof Symbol.iterator?function(t){return typeof t}:function(t){return t&&"function"==typeof Symbol&&t.constructor===Symbol&&t!==Symbol.prototype?"symbol":typeof t},e(t)}function o(){var t,n,e="function"==typeof Symbol?Symbol:{},i=e.iterator||"@@iterator",s=e.toStringTag||"@@toStringTag";function a(e,o,i,s){var a=o&&o.prototype instanceof u?o:u,d=Object.create(a.prototype);return r(d,"_invoke",function(e,o,r){var i,s,a,u=0,d=r||[],l=!1,p={p:0,n:0,v:t,a:h,f:h.bind(t,4),d:function(n,e){return i=n,s=0,a=t,p.n=e,c}};function h(e,o){for(s=e,a=o,n=0;!l&&u&&!r&&n<d.length;n++){var r,i=d[n],h=p.p,f=i[2];e>3?(r=f===o)&&(a=i[(s=i[4])?5:(s=3,3)],i[4]=i[5]=t):i[0]<=h&&((r=e<2&&h<i[1])?(s=0,p.v=o,p.n=i[1]):h<f&&(r=e<3||i[0]>o||o>f)&&(i[4]=e,i[5]=o,p.n=f,s=0))}if(r||e>1)return c;throw l=!0,o}return function(r,d,f){if(u>1)throw TypeError("Generator is already running");for(l&&1===d&&h(d,f),s=d,a=f;(n=s<2?t:a)||!l;){i||(s?s<3?(s>1&&(p.n=-1),h(s,a)):p.n=a:p.v=a);try{if(u=2,i){if(s||(r="next"),n=i[r]){if(!(n=n.call(i,a)))throw TypeError("iterator result is not an object");if(!n.done)return n;a=n.value,s<2&&(s=0)}else 1===s&&(n=i.return)&&n.call(i),s<2&&(a=TypeError("The iterator does not provide a '"+r+"' method"),s=1);i=t}else if((n=(l=p.n<0)?a:e.call(o,p))!==c)break}catch(n){i=t,s=1,a=n}finally{u=1}}return{value:n,done:l}}}(e,i,s),!0),d}var c={};function u(){}function d(){}function l(){}n=Object.getPrototypeOf;var p=[][i]?n(n([][i]())):(r(n={},i,function(){return this}),n),h=l.prototype=u.prototype=Object.create(p);function f(t){return Object.setPrototypeOf?Object.setPrototypeOf(t,l):(t.__proto__=l,r(t,s,"GeneratorFunction")),t.prototype=Object.create(h),t}return d.prototype=l,r(h,"constructor",l),r(l,"constructor",d),d.displayName="GeneratorFunction",r(l,s,"GeneratorFunction"),r(h),r(h,s,"Generator"),r(h,i,function(){return this}),r(h,"toString",function(){return"[object Generator]"}),(o=function(){return{w:a,m:f}})()}function r(t,n,e,o){var i=Object.defineProperty;try{i({},"",{})}catch(t){i=0}r=function(t,n,e,o){function s(n,e){r(t,n,function(t){return this._invoke(n,e,t)})}n?i?i(t,n,{value:e,enumerable:!o,configurable:!o,writable:!o}):t[n]=e:(s("next",0),s("throw",1),s("return",2))},r(t,n,e,o)}function i(t,n,e,o,r,i,s){try{var a=t[i](s),c=a.value}catch(t){return void e(t)}a.done?n(c):Promise.resolve(c).then(o,r)}function s(t){return function(){var n=this,e=arguments;return new Promise(function(o,r){var s=t.apply(n,e);function a(t){i(s,o,r,a,c,"next",t)}function c(t){i(s,o,r,a,c,"throw",t)}a(void 0)})}}function a(t,n){for(var e=0;e<n.length;e++){var o=n[e];o.enumerable=o.enumerable||!1,o.configurable=!0,"value"in o&&(o.writable=!0),Object.defineProperty(t,c(o.key),o)}}function c(t){var n=function(t){if("object"!=e(t)||!t)return t;var n=t[Symbol.toPrimitive];if(void 0!==n){var o=n.call(t,"string");if("object"!=e(o))return o;throw new TypeError("@@toPrimitive must return a primitive value.")}return String(t)}(t);return"symbol"==e(n)?n:n+""}function u(t){var n="function"==typeof Map?new Map:void 0;return u=function(t){if(null===t||!function(t){try{return-1!==Function.toString.call(t).indexOf("[native code]")}catch(n){return"function"==typeof t}}(t))return t;if("function"!=typeof t)throw new TypeError("Super expression must either be null or a function");if(void 0!==n){if(n.has(t))return n.get(t);n.set(t,e)}function e(){return function(t,n,e){if(d())return Reflect.construct.apply(null,arguments);var o=[null];o.push.apply(o,n);var r=new(t.bind.apply(t,o));return e&&l(r,e.prototype),r}(t,arguments,p(this).constructor)}return e.prototype=Object.create(t.prototype,{constructor:{value:e,enumerable:!1,writable:!0,configurable:!0}}),l(e,t)},u(t)}function d(){try{var t=!Boolean.prototype.valueOf.call(Reflect.construct(Boolean,[],function(){}))}catch(t){}return(d=function(){return!!t})()}function l(t,n){return l=Object.setPrototypeOf?Object.setPrototypeOf.bind():function(t,n){return t.__proto__=n,t},l(t,n)}function p(t){return p=Object.setPrototypeOf?Object.getPrototypeOf.bind():function(t){return t.__proto__||Object.getPrototypeOf(t)},p(t)}t.r(n),t.d(n,{default:()=>f});var h=function(t){function n(){var t;return function(t,n){if(!(t instanceof n))throw new TypeError("Cannot call a class as a function")}(this,n),(t=function(t,n,o){return n=p(n),function(t,n){if(n&&("object"==e(n)||"function"==typeof n))return n;if(void 0!==n)throw new TypeError("Derived constructors may only return object or undefined");return function(t){if(void 0===t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return t}(t)}(t,d()?Reflect.construct(n,o||[],p(t).constructor):n.apply(t,o))}(this,n)).attachShadow({mode:"open"}),t.isOpen=!1,t.sessionId=t.generateSessionId(),t.messageHistory=[],t.config=t.getConfiguration(),t.render(),t.attachEventListeners(),t.config.autoWelcome&&t.sendWelcomeMessage(),t}return function(t,n){if("function"!=typeof n&&null!==n)throw new TypeError("Super expression must either be null or a function");t.prototype=Object.create(n&&n.prototype,{constructor:{value:t,writable:!0,configurable:!0}}),Object.defineProperty(t,"prototype",{writable:!1}),n&&l(t,n)}(n,t),r=n,i=[{key:"getConfiguration",value:function(){return{title:this.getAttribute("title")||"TreeFlow Chat",endpoint:this.getAttribute("endpoint")||"",treeId:this.getAttribute("tree-id")||this.getAttribute("tree_id")||"6c295eca-5a9f-4588-b1db-1cf5c05f05ee",primaryColor:this.getAttribute("primary-color")||"#2563eb",secondaryColor:this.getAttribute("secondary-color")||"#f3f4f6",textColor:this.getAttribute("text-color")||"#1f2937",botIcon:this.getAttribute("bot-icon")||null,position:this.getAttribute("position")||"bottom-right",autoWelcome:"true"===this.getAttribute("auto-welcome"),welcomeMessage:this.getAttribute("welcome-message")||"¡Hola! ¿En qué puedo ayudarte?",placeholder:this.getAttribute("placeholder")||"Escribe tu mensaje...",width:this.getAttribute("width")||"350px",height:this.getAttribute("height")||"500px",zIndex:this.getAttribute("z-index")||"1000"}}},{key:"generateSessionId",value:function(){return"session_"+Math.random().toString(36).substr(2,9)+"_"+Date.now()}},{key:"render",value:function(){this.shadowRoot.innerHTML="\n      <style>\n        :host {\n          --primary-color: ".concat(this.config.primaryColor,";\n          --secondary-color: ").concat(this.config.secondaryColor,";\n          --text-color: ").concat(this.config.textColor,";\n          --widget-width: ").concat(this.config.width,";\n          --widget-height: ").concat(this.config.height,";\n          --z-index: ").concat(this.config.zIndex,";\n        }\n\n        * {\n          box-sizing: border-box;\n          margin: 0;\n          padding: 0;\n        }\n\n        .widget-container {\n          position: fixed;\n          ").concat(this.getPositionStyles(),'\n          z-index: var(--z-index);\n          font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;\n        }\n\n        .chat-button {\n          width: 60px;\n          height: 60px;\n          border-radius: 50%;\n          background: var(--primary-color);\n          border: none;\n          cursor: pointer;\n          display: flex;\n          align-items: center;\n          justify-content: center;\n          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);\n          transition: all 0.3s ease;\n          color: white;\n          font-size: 24px;\n        }\n\n        .chat-button:hover {\n          transform: scale(1.05);\n          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);\n        }\n\n        .chat-button.open {\n          transform: rotate(45deg);\n        }\n\n        .chat-window {\n          position: absolute;\n          bottom: 70px;\n          right: 0;\n          width: var(--widget-width);\n          height: var(--widget-height);\n          background: white;\n          border-radius: 12px;\n          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);\n          display: none;\n          flex-direction: column;\n          overflow: hidden;\n          border: 1px solid #e5e7eb;\n        }\n\n        .chat-window.open {\n          display: flex;\n          animation: slideUp 0.3s ease-out;\n        }\n\n        @keyframes slideUp {\n          from {\n            opacity: 0;\n            transform: translateY(20px);\n          }\n          to {\n            opacity: 1;\n            transform: translateY(0);\n          }\n        }\n\n        .chat-header {\n          background: var(--primary-color);\n          color: white;\n          padding: 16px;\n          display: flex;\n          align-items: center;\n          justify-content: space-between;\n        }\n\n        .chat-title {\n          font-weight: 600;\n          font-size: 16px;\n        }\n\n        .close-button {\n          background: none;\n          border: none;\n          color: white;\n          cursor: pointer;\n          font-size: 18px;\n          padding: 4px;\n          border-radius: 4px;\n          transition: background-color 0.2s;\n        }\n\n        .close-button:hover {\n          background: rgba(255, 255, 255, 0.1);\n        }\n\n        .messages-container {\n          flex: 1;\n          overflow-y: auto;\n          padding: 16px;\n          display: flex;\n          flex-direction: column;\n          gap: 12px;\n        }\n\n        .message {\n          max-width: 80%;\n          padding: 12px 16px;\n          border-radius: 18px;\n          font-size: 14px;\n          line-height: 1.4;\n        }\n\n        .message.user {\n          align-self: flex-end;\n          background: var(--primary-color);\n          color: white;\n          border-bottom-right-radius: 6px;\n        }\n\n        .message.bot {\n          align-self: flex-start;\n          background: var(--secondary-color);\n          color: var(--text-color);\n          border-bottom-left-radius: 6px;\n        }\n\n        .suggestions {\n          display: flex;\n          flex-wrap: wrap;\n          gap: 8px;\n          margin-top: 8px;\n        }\n\n        .suggestion-chip {\n          background: white;\n          border: 1px solid var(--primary-color);\n          color: var(--primary-color);\n          padding: 8px 12px;\n          border-radius: 16px;\n          font-size: 12px;\n          cursor: pointer;\n          transition: all 0.2s;\n        }\n\n        .suggestion-chip:hover {\n          background: var(--primary-color);\n          color: white;\n        }\n\n        .input-container {\n          padding: 16px;\n          border-top: 1px solid #e5e7eb;\n          display: flex;\n          gap: 8px;\n          align-items: center;\n        }\n\n        .message-input {\n          flex: 1;\n          border: 1px solid #d1d5db;\n          border-radius: 20px;\n          padding: 10px 16px;\n          font-size: 14px;\n          outline: none;\n          transition: border-color 0.2s;\n        }\n\n        .message-input:focus {\n          border-color: var(--primary-color);\n        }\n\n        .send-button {\n          background: var(--primary-color);\n          border: none;\n          color: white;\n          width: 40px;\n          height: 40px;\n          border-radius: 50%;\n          cursor: pointer;\n          display: flex;\n          align-items: center;\n          justify-content: center;\n          transition: background-color 0.2s;\n        }\n\n        .send-button:hover {\n          background: color-mix(in srgb, var(--primary-color) 90%, black);\n        }\n\n        .send-button:disabled {\n          background: #9ca3af;\n          cursor: not-allowed;\n        }\n\n        .typing-indicator {\n          display: none;\n          align-items: center;\n          gap: 4px;\n          padding: 12px 16px;\n          color: #6b7280;\n          font-size: 12px;\n        }\n\n        .typing-indicator.show {\n          display: flex;\n        }\n\n        .typing-dots {\n          display: flex;\n          gap: 2px;\n        }\n\n        .typing-dot {\n          width: 4px;\n          height: 4px;\n          border-radius: 50%;\n          background: #9ca3af;\n          animation: typing 1.4s infinite ease-in-out;\n        }\n\n        .typing-dot:nth-child(1) { animation-delay: -0.32s; }\n        .typing-dot:nth-child(2) { animation-delay: -0.16s; }\n\n        @keyframes typing {\n          0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }\n          40% { transform: scale(1); opacity: 1; }\n        }\n\n        /* Mobile responsive */\n        @media (max-width: 768px) {\n          .chat-window {\n            width: calc(100vw - 20px);\n            height: calc(100vh - 100px);\n            bottom: 70px;\n            right: 10px;\n          }\n        }\n      </style>\n\n      <div class="widget-container">\n        <button class="chat-button" id="chatButton">\n          ').concat(this.config.botIcon?'<img src="'.concat(this.config.botIcon,'" alt="Chat" style="width: 32px; height: 32px; border-radius: 50%;">'):"💬",'\n        </button>\n        \n        <div class="chat-window" id="chatWindow">\n          <div class="chat-header">\n            <span class="chat-title">').concat(this.config.title,'</span>\n            <button class="close-button" id="closeButton">×</button>\n          </div>\n          \n          <div class="messages-container" id="messagesContainer">\n            <div class="typing-indicator" id="typingIndicator">\n              <span>Escribiendo</span>\n              <div class="typing-dots">\n                <div class="typing-dot"></div>\n                <div class="typing-dot"></div>\n                <div class="typing-dot"></div>\n              </div>\n            </div>\n          </div>\n          \n          <div class="input-container">\n            <input \n              type="text" \n              class="message-input" \n              id="messageInput" \n              placeholder="').concat(this.config.placeholder,'"\n              autocomplete="off"\n            >\n            <button class="send-button" id="sendButton">\n              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">\n                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>\n              </svg>\n            </button>\n          </div>\n        </div>\n      </div>\n    ')}},{key:"getPositionStyles",value:function(){switch(this.config.position){case"bottom-left":return"bottom: 20px; left: 20px;";case"top-right":return"top: 20px; right: 20px;";case"top-left":return"top: 20px; left: 20px;";default:return"bottom: 20px; right: 20px;"}}},{key:"attachEventListeners",value:function(){var t=this,n=this.shadowRoot.getElementById("chatButton"),e=this.shadowRoot.getElementById("closeButton"),o=this.shadowRoot.getElementById("sendButton"),r=this.shadowRoot.getElementById("messageInput");n.addEventListener("click",function(){return t.toggleChat()}),e.addEventListener("click",function(){return t.closeChat()}),o.addEventListener("click",function(){return t.sendMessage()}),r.addEventListener("keypress",function(n){"Enter"!==n.key||n.shiftKey||(n.preventDefault(),t.sendMessage())}),r.addEventListener("input",function(){var t=r.value.trim().length>0;o.disabled=!t})}},{key:"toggleChat",value:function(){this.isOpen?this.closeChat():this.openChat()}},{key:"openChat",value:function(){var t=this;this.isOpen=!0;var n=this.shadowRoot.getElementById("chatWindow"),e=this.shadowRoot.getElementById("chatButton");n.classList.add("open"),e.classList.add("open"),setTimeout(function(){t.shadowRoot.getElementById("messageInput").focus()},300)}},{key:"closeChat",value:function(){this.isOpen=!1;var t=this.shadowRoot.getElementById("chatWindow"),n=this.shadowRoot.getElementById("chatButton");t.classList.remove("open"),n.classList.remove("open")}},{key:"sendMessage",value:(h=s(o().m(function t(){var n,e,r,i;return o().w(function(t){for(;;)switch(t.p=t.n){case 0:if(n=this.shadowRoot.getElementById("messageInput"),e=n.value.trim()){t.n=1;break}return t.a(2);case 1:return n.value="",this.shadowRoot.getElementById("sendButton").disabled=!0,this.addMessage(e,"user"),this.showTypingIndicator(),t.p=2,t.n=3,this.callBackend(e);case 3:r=t.v,this.hideTypingIndicator(),this.addMessage(r.message,"bot",r.suggestions),t.n=5;break;case 4:t.p=4,i=t.v,console.error("Error sending message:",i),this.hideTypingIndicator(),this.addMessage("Lo siento, ocurrió un error. Por favor intenta de nuevo.","bot");case 5:return t.a(2)}},t,this,[[2,4]])})),function(){return h.apply(this,arguments)})},{key:"sendWelcomeMessage",value:(u=s(o().m(function t(){var n;return o().w(function(t){for(;;)switch(t.p=t.n){case 0:if(this.config.endpoint){t.n=1;break}return this.addMessage(this.config.welcomeMessage,"bot"),t.a(2);case 1:return t.p=1,t.n=2,this.callBackend("__WELCOME__");case 2:n=t.v,this.addMessage(n.message,"bot",n.suggestions),t.n=4;break;case 3:t.p=3,t.v,this.addMessage(this.config.welcomeMessage,"bot");case 4:return t.a(2)}},t,this,[[1,3]])})),function(){return u.apply(this,arguments)})},{key:"callBackend",value:(c=s(o().m(function t(n){var e,r,i,s;return o().w(function(t){for(;;)switch(t.n){case 0:if(this.config=this.getConfiguration(),this.config.endpoint){t.n=1;break}throw new Error("No endpoint configured");case 1:return r={type:"text",value:n.trim(),tree_id:this.config.treeId||"6c295eca-5a9f-4588-b1db-1cf5c05f05ee",session_id:this.sessionId},t.n=2,fetch(this.config.endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(r)});case 2:if((i=t.v).ok){t.n=3;break}throw new Error("HTTP error! status: ".concat(i.status));case 3:return t.n=4,i.json();case 4:return s=t.v,console.log("[TreeFlow Widget] Response received:",s),t.a(2,{message:(null===(e=s.response)||void 0===e?void 0:e.value)||s.response||"Sin respuesta",suggestions:s.suggestions||[]})}},t,this)})),function(t){return c.apply(this,arguments)})},{key:"addMessage",value:function(t,n){var e=this,o=arguments.length>2&&void 0!==arguments[2]?arguments[2]:[],r=this.shadowRoot.getElementById("messagesContainer"),i=this.shadowRoot.getElementById("typingIndicator"),s=document.createElement("div");if(s.className="message ".concat(n),s.textContent=t,r.insertBefore(s,i),o&&o.length>0){var a=document.createElement("div");a.className="suggestions",o.forEach(function(t){var n=document.createElement("button");n.className="suggestion-chip",n.textContent=t,n.addEventListener("click",function(){e.handleSuggestionClick(t),a.remove()}),a.appendChild(n)}),r.insertBefore(a,i)}this.messageHistory.push({text:t,sender:n,timestamp:(new Date).toISOString()}),this.scrollToBottom()}},{key:"handleSuggestionClick",value:function(t){var n=this;this.addMessage(t,"user"),this.showTypingIndicator(),this.callBackend(t).then(function(t){n.hideTypingIndicator(),n.addMessage(t.message,"bot",t.suggestions)}).catch(function(t){console.error("Error sending suggestion:",t),n.hideTypingIndicator(),n.addMessage("Lo siento, ocurrió un error. Por favor intenta de nuevo.","bot")})}},{key:"showTypingIndicator",value:function(){this.shadowRoot.getElementById("typingIndicator").classList.add("show"),this.scrollToBottom()}},{key:"hideTypingIndicator",value:function(){this.shadowRoot.getElementById("typingIndicator").classList.remove("show")}},{key:"scrollToBottom",value:function(){var t=this.shadowRoot.getElementById("messagesContainer");setTimeout(function(){t.scrollTop=t.scrollHeight},100)}},{key:"open",value:function(){this.openChat()}},{key:"close",value:function(){this.closeChat()}},{key:"sendUserMessage",value:function(t){this.shadowRoot.getElementById("messageInput").value=t,this.sendMessage()}},{key:"clearHistory",value:function(){var t=this.shadowRoot.getElementById("messagesContainer");this.shadowRoot.getElementById("typingIndicator"),t.querySelectorAll(".message, .suggestions").forEach(function(t){return t.remove()}),this.messageHistory=[]}}],i&&a(r.prototype,i),Object.defineProperty(r,"prototype",{writable:!1}),r;var r,i,c,u,h}(u(HTMLElement));customElements.get("treeflow-widget")||customElements.define("treeflow-widget",h);const f=h;return n})());
+class TreeFlowWidget extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+    this.sessionId = this.generateSessionId();
+    this.isOpen = false;
+    this.isMinimized = false;
+    this.messages = [];
+    this.isTyping = false;
+    this.isRecording = false;
+    this.mediaRecorder = null;
+    this.audioChunks = [];
+  }
+
+  connectedCallback() {
+    this.config = this.getConfiguration();
+    this.render();
+    this.setupEventListeners();
+    
+    if (this.config.maximizeOnStart) {
+      setTimeout(() => this.open(), 100);
+    }
+    
+    if (this.config.startEvents && this.config.startEvents.length > 0) {
+      setTimeout(() => this.sendStartEvents(), 500);
+    }
+    
+    if (this.config.autoWelcome && this.config.welcomeMessage) {
+      setTimeout(() => this.addMessage(this.config.welcomeMessage, 'bot'), 1000);
+    }
+  }
+
+  getConfiguration() {
+    const globalConfig = window.treeflowConfig || {};
+    
+    return {
+      title: this.getAttribute('title') || globalConfig.title || 'TreeFlow Chat',
+      endpoint: this.getAttribute('endpoint') || globalConfig.apiUrl || '',
+      treeId: this.getAttribute('tree-id') || this.getAttribute('tree_id') || globalConfig.treeId || '6c295eca-5a9f-4588-b1db-1cf5c05f05ee',
+      botIcon: this.getAttribute('bot-icon') || globalConfig.botIcon || '🤖',
+      widgetIcon: this.getAttribute('widget-icon') || globalConfig.widgetIcon || '💬',
+      autoWelcome: this.getAttribute('auto-welcome') === 'true' || globalConfig.autoWelcome || false,
+      welcomeMessage: this.getAttribute('welcome-message') || globalConfig.welcomeMessage || '¡Hola! ¿En qué puedo ayudarte?',
+      placeholder: this.getAttribute('placeholder') || globalConfig.placeholder || 'Escribe tu mensaje...',
+      startEvents: globalConfig.startEvents || [],
+      maximizeOnStart: this.getAttribute('maximize-on-start') === 'true' || globalConfig.maximizeOnStart || false,
+      fileUpload: this.getAttribute('file-upload') === 'true' || globalConfig.fileUpload || false,
+      microphone: this.getAttribute('microphone') === 'true' || globalConfig.microphone || false,
+      maxFileSize: parseInt(this.getAttribute('max-file-size')) || globalConfig.maxFileSize || 5242880,
+      responseDelay: parseInt(this.getAttribute('response-delay')) || globalConfig.responseDelay || 1500
+    };
+  }
+
+  generateSessionId() {
+    return 'session_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+  }
+
+  render() {
+    this.shadowRoot.innerHTML = `
+      <style>
+        :host {
+          /* Variables CSS para personalización completa */
+          --tfw-primary-color: #2563eb;
+          --tfw-secondary-color: #f3f4f6;
+          --tfw-text-color: #1f2937;
+          --tfw-background-color: #ffffff;
+          --tfw-border-color: #e5e7eb;
+          --tfw-shadow-color: rgba(0, 0, 0, 0.12);
+          
+          /* Colores de mensajes */
+          --tfw-user-message-bg: var(--tfw-primary-color);
+          --tfw-user-message-color: #ffffff;
+          --tfw-bot-message-bg: var(--tfw-secondary-color);
+          --tfw-bot-message-color: var(--tfw-text-color);
+          
+          /* Header */
+          --tfw-header-bg: var(--tfw-primary-color);
+          --tfw-header-color: #ffffff;
+          
+          /* Botones */
+          --tfw-button-bg: var(--tfw-primary-color);
+          --tfw-button-color: #ffffff;
+          --tfw-button-hover-bg: #1d4ed8;
+          
+          /* Widget dimensions */
+          --tfw-widget-width: 350px;
+          --tfw-widget-height: 500px;
+          --tfw-widget-z-index: 1000;
+          --tfw-widget-position-bottom: 20px;
+          --tfw-widget-position-right: 20px;
+          
+          /* Widget button */
+          --tfw-widget-button-size: 60px;
+          --tfw-widget-button-bg: var(--tfw-primary-color);
+          --tfw-widget-button-color: #ffffff;
+          
+          /* Border radius */
+          --tfw-border-radius: 12px;
+          --tfw-border-radius-small: 6px;
+          --tfw-border-radius-large: 18px;
+          
+          /* Spacing */
+          --tfw-spacing-sm: 8px;
+          --tfw-spacing-md: 12px;
+          --tfw-spacing-lg: 16px;
+          
+          /* Typography */
+          --tfw-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          --tfw-font-size-sm: 14px;
+          --tfw-font-size-md: 16px;
+          
+          /* Animation */
+          --tfw-transition: all 0.3s ease;
+          --tfw-transition-fast: all 0.2s ease;
+          
+          position: fixed;
+          bottom: var(--tfw-widget-position-bottom);
+          right: var(--tfw-widget-position-right);
+          z-index: var(--tfw-widget-z-index);
+          font-family: var(--tfw-font-family);
+        }
+        
+        .widget-button {
+          width: var(--tfw-widget-button-size);
+          height: var(--tfw-widget-button-size);
+          border-radius: 50%;
+          background: var(--tfw-widget-button-bg);
+          color: var(--tfw-widget-button-color);
+          border: none;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 24px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          transition: var(--tfw-transition);
+        }
+        
+        .widget-button:hover {
+          transform: scale(1.1);
+        }
+        
+        .chat-window {
+          position: absolute;
+          right: 0;
+          bottom: calc(var(--tfw-widget-button-size) + 10px);
+          width: var(--tfw-widget-width);
+          height: var(--tfw-widget-height);
+          background: var(--tfw-background-color);
+          border-radius: var(--tfw-border-radius);
+          box-shadow: 0 8px 32px var(--tfw-shadow-color);
+          display: none;
+          flex-direction: column;
+          overflow: hidden;
+          transform: scale(0.8);
+          opacity: 0;
+          transition: var(--tfw-transition);
+        }
+        
+        .chat-window.open {
+          display: flex;
+          transform: scale(1);
+          opacity: 1;
+        }
+        
+        .chat-window.minimized {
+          height: 60px;
+          overflow: hidden;
+        }
+        
+        .chat-header {
+          background: var(--tfw-header-bg);
+          color: var(--tfw-header-color);
+          padding: var(--tfw-spacing-lg);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          min-height: 60px;
+          box-sizing: border-box;
+        }
+        
+        .chat-title {
+          font-weight: 600;
+          font-size: var(--tfw-font-size-md);
+          display: flex;
+          align-items: center;
+          gap: var(--tfw-spacing-sm);
+        }
+        
+        .chat-controls {
+          display: flex;
+          gap: var(--tfw-spacing-sm);
+        }
+        
+        .control-btn {
+          background: rgba(255, 255, 255, 0.2);
+          border: none;
+          color: var(--tfw-header-color);
+          width: 32px;
+          height: 32px;
+          border-radius: var(--tfw-border-radius-small);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: var(--tfw-transition-fast);
+        }
+        
+        .control-btn:hover {
+          background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .chat-messages {
+          flex: 1;
+          padding: var(--tfw-spacing-lg);
+          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+          gap: var(--tfw-spacing-md);
+        }
+        
+        .message {
+          max-width: 80%;
+          padding: var(--tfw-spacing-md) var(--tfw-spacing-lg);
+          border-radius: var(--tfw-border-radius-large);
+          word-wrap: break-word;
+          animation: messageSlide 0.3s ease;
+          font-size: var(--tfw-font-size-sm);
+        }
+        
+        @keyframes messageSlide {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .message.user {
+          background: var(--tfw-user-message-bg);
+          color: var(--tfw-user-message-color);
+          align-self: flex-end;
+          border-bottom-right-radius: 4px;
+        }
+        
+        .message.bot {
+          background: var(--tfw-bot-message-bg);
+          color: var(--tfw-bot-message-color);
+          align-self: flex-start;
+          border-bottom-left-radius: 4px;
+        }
+        
+        .typing-indicator {
+          display: none;
+          align-items: center;
+          gap: var(--tfw-spacing-sm);
+          padding: var(--tfw-spacing-md) var(--tfw-spacing-lg);
+          color: #666;
+          font-style: italic;
+          font-size: var(--tfw-font-size-sm);
+        }
+        
+        .typing-indicator.show {
+          display: flex;
+        }
+        
+        .typing-dots {
+          display: flex;
+          gap: 4px;
+        }
+        
+        .typing-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #666;
+          animation: typingDot 1.4s infinite ease-in-out;
+        }
+        
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        
+        @keyframes typingDot {
+          0%, 80%, 100% { transform: scale(0); }
+          40% { transform: scale(1); }
+        }
+        
+        .suggestions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--tfw-spacing-sm);
+          margin-top: var(--tfw-spacing-sm);
+        }
+        
+        .suggestion-chip {
+          background: var(--tfw-button-bg);
+          color: var(--tfw-button-color);
+          border: none;
+          padding: var(--tfw-spacing-sm) var(--tfw-spacing-md);
+          border-radius: 16px;
+          cursor: pointer;
+          font-size: var(--tfw-font-size-sm);
+          transition: var(--tfw-transition-fast);
+        }
+        
+        .suggestion-chip:hover {
+          background: var(--tfw-button-hover-bg);
+          transform: translateY(-1px);
+        }
+        
+        .chat-input-container {
+          padding: var(--tfw-spacing-lg);
+          border-top: 1px solid var(--tfw-border-color);
+          display: flex;
+          align-items: flex-end;
+          gap: var(--tfw-spacing-sm);
+        }
+        
+        .input-actions {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        
+        .input-btn {
+          background: var(--tfw-secondary-color);
+          border: none;
+          width: 36px;
+          height: 36px;
+          border-radius: var(--tfw-border-radius-small);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: var(--tfw-transition-fast);
+          color: var(--tfw-text-color);
+        }
+        
+        .input-btn:hover {
+          background: var(--tfw-button-bg);
+          color: var(--tfw-button-color);
+        }
+        
+        .input-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        
+        .chat-input {
+          flex: 1;
+          border: 2px solid var(--tfw-border-color);
+          border-radius: var(--tfw-border-radius);
+          padding: var(--tfw-spacing-md) var(--tfw-spacing-lg);
+          font-size: var(--tfw-font-size-sm);
+          outline: none;
+          resize: none;
+          min-height: 20px;
+          max-height: 100px;
+          font-family: var(--tfw-font-family);
+          color: var(--tfw-text-color);
+        }
+        
+        .chat-input:focus {
+          border-color: var(--tfw-primary-color);
+        }
+        
+        .send-btn {
+          background: var(--tfw-button-bg);
+          color: var(--tfw-button-color);
+          border: none;
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: var(--tfw-transition-fast);
+        }
+        
+        .send-btn:hover {
+          transform: scale(1.1);
+          background: var(--tfw-button-hover-bg);
+        }
+        
+        .send-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          transform: none;
+        }
+        
+        .file-input {
+          display: none;
+        }
+        
+        .recording {
+          background: #ef4444 !important;
+          animation: recordingPulse 1s infinite;
+        }
+        
+        @keyframes recordingPulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.7; }
+        }
+        
+        .hidden {
+          display: none !important;
+        }
+        
+        /* Responsive design */
+        @media (max-width: 480px) {
+          :host {
+            --tfw-widget-width: calc(100vw - 40px);
+            --tfw-widget-height: calc(100vh - 100px);
+            --tfw-widget-position-bottom: 10px;
+            --tfw-widget-position-right: 10px;
+          }
+        }
+      </style>
+      
+      <button class="widget-button" id="toggleBtn">
+        ${this.config.widgetIcon}
+      </button>
+      
+      <div class="chat-window" id="chatWindow">
+        <div class="chat-header">
+          <div class="chat-title">
+            ${this.config.botIcon ? `<span>${this.config.botIcon}</span>` : ''}
+            ${this.config.title}
+          </div>
+          <div class="chat-controls">
+            <button class="control-btn" id="minimizeBtn" title="Minimizar">−</button>
+            <button class="control-btn" id="closeBtn" title="Cerrar">×</button>
+          </div>
+        </div>
+        
+        <div class="chat-messages" id="messages"></div>
+        
+        <div class="typing-indicator" id="typingIndicator">
+          <span>Escribiendo</span>
+          <div class="typing-dots">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+          </div>
+        </div>
+        
+        <div class="chat-input-container">
+          <div class="input-actions">
+            <button class="input-btn ${!this.config.fileUpload ? 'hidden' : ''}" id="fileBtn" title="Adjuntar archivo">📎</button>
+            <button class="input-btn ${!this.config.microphone ? 'hidden' : ''}" id="micBtn" title="Grabar audio">🎤</button>
+          </div>
+          
+          <textarea 
+            class="chat-input" 
+            id="messageInput" 
+            placeholder="${this.config.placeholder}"
+            rows="1"
+          ></textarea>
+          
+          <button class="send-btn" id="sendBtn" title="Enviar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+            </svg>
+          </button>
+          
+          <input type="file" class="file-input" id="fileInput" accept="*/*">
+        </div>
+      </div>
+    `;
+  }
+
+  setupEventListeners() {
+    const toggleBtn = this.shadowRoot.getElementById('toggleBtn');
+    const closeBtn = this.shadowRoot.getElementById('closeBtn');
+    const minimizeBtn = this.shadowRoot.getElementById('minimizeBtn');
+    const sendBtn = this.shadowRoot.getElementById('sendBtn');
+    const messageInput = this.shadowRoot.getElementById('messageInput');
+    const fileBtn = this.shadowRoot.getElementById('fileBtn');
+    const micBtn = this.shadowRoot.getElementById('micBtn');
+    const fileInput = this.shadowRoot.getElementById('fileInput');
+
+    toggleBtn.addEventListener('click', () => this.toggle());
+    closeBtn.addEventListener('click', () => this.close());
+    minimizeBtn.addEventListener('click', () => this.minimize());
+    sendBtn.addEventListener('click', () => this.handleSendMessage());
+    
+    messageInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        this.handleSendMessage();
+      }
+    });
+
+    messageInput.addEventListener('input', () => {
+      this.autoResize(messageInput);
+    });
+
+    if (this.config.fileUpload) {
+      fileBtn.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', (e) => this.handleFileUpload(e));
+    }
+
+    if (this.config.microphone) {
+      micBtn.addEventListener('click', () => this.handleMicrophone());
+    }
+  }
+
+  autoResize(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 100) + 'px';
+  }
+
+  toggle() {
+    if (this.isOpen) {
+      this.close();
+    } else {
+      this.open();
+    }
+  }
+
+  open() {
+    const chatWindow = this.shadowRoot.getElementById('chatWindow');
+    chatWindow.classList.add('open');
+    chatWindow.classList.remove('minimized');
+    this.isOpen = true;
+    this.isMinimized = false;
+    
+    setTimeout(() => {
+      const messageInput = this.shadowRoot.getElementById('messageInput');
+      messageInput.focus();
+    }, 300);
+  }
+
+  close() {
+    const chatWindow = this.shadowRoot.getElementById('chatWindow');
+    chatWindow.classList.remove('open');
+    this.isOpen = false;
+    this.isMinimized = false;
+  }
+
+  minimize() {
+    const chatWindow = this.shadowRoot.getElementById('chatWindow');
+    if (this.isMinimized) {
+      chatWindow.classList.remove('minimized');
+      this.isMinimized = false;
+    } else {
+      chatWindow.classList.add('minimized');
+      this.isMinimized = true;
+    }
+  }
+
+  async handleSendMessage() {
+    const messageInput = this.shadowRoot.getElementById('messageInput');
+    const message = messageInput.value.trim();
+    
+    if (!message) return;
+    
+    this.addMessage(message, 'user');
+    messageInput.value = '';
+    this.autoResize(messageInput);
+    
+    try {
+      this.showTyping();
+      
+      if (this.config.responseDelay > 0) {
+        await this.delay(this.config.responseDelay);
+      }
+      
+      const response = await this.callBackend(message);
+      this.hideTyping();
+      
+      if (response.message) {
+        this.addMessage(response.message, 'bot', response.suggestions);
+      }
+    } catch (error) {
+      this.hideTyping();
+      console.error('Error sending message:', error);
+      this.addMessage('Lo siento, ha ocurrido un error. Por favor, inténtalo de nuevo.', 'bot');
+    }
+  }
+
+  async handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    if (file.size > this.config.maxFileSize) {
+      this.addMessage(`El archivo es demasiado grande. Tamaño máximo: ${this.formatFileSize(this.config.maxFileSize)}`, 'bot');
+      return;
+    }
+    
+    this.addMessage(`📎 Archivo enviado: ${file.name}`, 'user');
+    
+    try {
+      this.showTyping();
+      await this.delay(1000);
+      this.hideTyping();
+      this.addMessage('He recibido tu archivo. ¿En qué puedo ayudarte con él?', 'bot');
+    } catch (error) {
+      this.hideTyping();
+      console.error('Error uploading file:', error);
+      this.addMessage('Error al procesar el archivo.', 'bot');
+    }
+    
+    event.target.value = '';
+  }
+
+  async handleMicrophone() {
+    const micBtn = this.shadowRoot.getElementById('micBtn');
+    
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      this.addMessage('Tu navegador no soporta grabación de audio.', 'bot');
+      return;
+    }
+    
+    try {
+      if (!this.isRecording) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        this.mediaRecorder = new MediaRecorder(stream);
+        this.audioChunks = [];
+        
+        this.mediaRecorder.ondataavailable = (event) => {
+          this.audioChunks.push(event.data);
+        };
+        
+        this.mediaRecorder.onstop = () => {
+          const audioBlob = new Blob(this.audioChunks, { type: 'audio/wav' });
+          this.handleAudioMessage(audioBlob);
+          stream.getTracks().forEach(track => track.stop());
+        };
+        
+        this.mediaRecorder.start();
+        this.isRecording = true;
+        micBtn.classList.add('recording');
+        micBtn.title = 'Detener grabación';
+        
+      } else {
+        this.mediaRecorder.stop();
+        this.isRecording = false;
+        micBtn.classList.remove('recording');
+        micBtn.title = 'Grabar audio';
+      }
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+      this.addMessage('Error al acceder al micrófono.', 'bot');
+    }
+  }
+
+  async handleAudioMessage(audioBlob) {
+    this.addMessage('🎤 Audio enviado', 'user');
+    
+    try {
+      this.showTyping();
+      await this.delay(2000);
+      this.hideTyping();
+      this.addMessage('He recibido tu mensaje de audio. ¿Podrías escribir tu pregunta?', 'bot');
+    } catch (error) {
+      this.hideTyping();
+      console.error('Error processing audio:', error);
+      this.addMessage('Error al procesar el audio.', 'bot');
+    }
+  }
+
+  async sendStartEvents() {
+    for (const event of this.config.startEvents) {
+      try {
+        await this.callBackend(event, true);
+      } catch (error) {
+        console.error('Error sending start event:', event, error);
+      }
+    }
+  }
+
+  async callBackend(message, isStartEvent = false) {
+    this.config = this.getConfiguration();
+    
+    if (!this.config.endpoint) {
+      throw new Error('No endpoint configured');
+    }
+
+    const requestPayload = {
+      type: 'text',
+      value: message.trim(),
+      tree_id: this.config.treeId,
+      session_id: this.sessionId,
+      is_start_event: isStartEvent
+    };
+
+    const response = await fetch(this.config.endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestPayload)
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    return {
+      message: data.response?.value || data.message || 'Sin respuesta',
+      suggestions: data.suggestions || data.response?.suggestions || []
+    };
+  }
+
+  addMessage(text, sender, suggestions = []) {
+    const messagesContainer = this.shadowRoot.getElementById('messages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${sender}`;
+    messageDiv.textContent = text;
+    
+    messagesContainer.appendChild(messageDiv);
+    
+    if (suggestions && suggestions.length > 0) {
+      const suggestionsDiv = document.createElement('div');
+      suggestionsDiv.className = 'suggestions';
+      
+      suggestions.forEach(suggestion => {
+        const chip = document.createElement('button');
+        chip.className = 'suggestion-chip';
+        chip.textContent = suggestion;
+        chip.addEventListener('click', () => {
+          const messageInput = this.shadowRoot.getElementById('messageInput');
+          messageInput.value = suggestion;
+          this.handleSendMessage();
+        });
+        suggestionsDiv.appendChild(chip);
+      });
+      
+      messagesContainer.appendChild(suggestionsDiv);
+    }
+    
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    this.messages.push({ text, sender, suggestions, timestamp: new Date() });
+  }
+
+  showTyping() {
+    const typingIndicator = this.shadowRoot.getElementById('typingIndicator');
+    typingIndicator.classList.add('show');
+    
+    const messagesContainer = this.shadowRoot.getElementById('messages');
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }
+
+  hideTyping() {
+    const typingIndicator = this.shadowRoot.getElementById('typingIndicator');
+    typingIndicator.classList.remove('show');
+  }
+
+  delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  clearHistory() {
+    const messagesContainer = this.shadowRoot.getElementById('messages');
+    messagesContainer.innerHTML = '';
+    this.messages = [];
+  }
+
+  // Public API methods
+  sendMessage(message) {
+    const messageInput = this.shadowRoot.getElementById('messageInput');
+    messageInput.value = message;
+    this.handleSendMessage();
+  }
+
+  getMessages() {
+    return [...this.messages];
+  }
+}
+
+// Register the custom element only if not already registered
+if (!customElements.get('treeflow-widget')) {
+  customElements.define('treeflow-widget', TreeFlowWidget);
+}
