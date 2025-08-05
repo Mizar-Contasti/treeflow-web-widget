@@ -379,8 +379,9 @@ class TreeFlowWidget extends HTMLElement {
           padding: var(--tfw-spacing-lg);
           border-top: 1px solid var(--tfw-border-color);
           display: flex;
-          align-items: flex-end;
+          align-items: center;
           gap: var(--tfw-spacing-sm);
+          flex-wrap: nowrap;
         }
         
         .message-debug-btn {
@@ -548,7 +549,7 @@ class TreeFlowWidget extends HTMLElement {
         .input-btn {
           background: var(--tfw-secondary-color);
           border: none;
-          width: 36px;
+          min-width: 36px;
           height: 36px;
           border-radius: 50%;
           cursor: pointer;
@@ -557,6 +558,7 @@ class TreeFlowWidget extends HTMLElement {
           justify-content: center;
           transition: var(--tfw-transition-fast);
           color: var(--tfw-text-color);
+          flex-shrink: 0;
         }
         
         .input-btn:hover {
@@ -591,13 +593,14 @@ class TreeFlowWidget extends HTMLElement {
           background: var(--tfw-button-bg);
           color: var(--tfw-button-color);
           border: none;
-          width: 40px;
+          min-width: 40px;
           height: 40px;
           border-radius: 50%;
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
+          flex-shrink: 0;
           transition: var(--tfw-transition-fast);
         }
         
@@ -642,7 +645,9 @@ class TreeFlowWidget extends HTMLElement {
       </style>
       
       <button class="widget-button" id="toggleBtn">
-        ${this.config.widgetIcon || `<img src="${this.config.botIcon}" alt="Bot" width="32" height="32">`}
+        ${this.config.widgetIcon || `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20,2H4C2.9,2,2,2.9,2,4v18l4-4h14c1.1,0,2-0.9,2-2V4C22,2.9,21.1,2,20,2z M20,16H6l-2,2V4h16V16z"/>
+        </svg>`}
       </button>
       
       <div class="chat-window" id="chatWindow">
@@ -695,19 +700,18 @@ class TreeFlowWidget extends HTMLElement {
         </div>
         
         <div class="chat-input-container">
-          <div class="input-actions">
-            <button class="input-btn ${!this.config.fileUpload ? 'hidden' : ''}" id="fileBtn" title="Adjuntar archivo">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M16.5,6v11.5c0,2.21-1.79,4-4,4s-4-1.79-4-4V5c0-1.38,1.12-2.5,2.5-2.5s2.5,1.12,2.5,2.5v10.5c0,0.55-0.45,1-1,1s-1-0.45-1-1V6H10v9.5c0,1.38,1.12,2.5,2.5,2.5s2.5-1.12,2.5-2.5V5c0-2.21-1.79-4-4-4S7,2.79,7,5v12.5c0,3.04,2.46,5.5,5.5,5.5s5.5-2.46,5.5-5.5V6H16.5z"/>
-              </svg>
-            </button>
-            <button class="input-btn ${!this.config.microphone ? 'hidden' : ''}" id="micBtn" title="Grabar audio">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12,14c1.66,0,3-1.34,3-3V5c0-1.66-1.34-3-3-3S9,3.34,9,5v6C9,12.66,10.34,14,12,14z"/>
-                <path d="M17,11c0,2.76-2.24,5-5,5s-5-2.24-5-5H5c0,3.53,2.61,6.43,6,6.92V21h2v-3.08c3.39-0.49,6-3.39,6-6.92H17z"/>
-              </svg>
-            </button>
-          </div>
+          <button class="input-btn ${!this.config.fileUpload ? 'hidden' : ''}" id="fileBtn" title="Adjuntar archivo">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M16.5,6v11.5c0,2.21-1.79,4-4,4s-4-1.79-4-4V5c0-1.38,1.12-2.5,2.5-2.5s2.5,1.12,2.5,2.5v10.5c0,0.55-0.45,1-1,1s-1-0.45-1-1V6H10v9.5c0,1.38,1.12,2.5,2.5,2.5s2.5-1.12,2.5-2.5V5c0-2.21-1.79-4-4-4S7,2.79,7,5v12.5c0,3.04,2.46,5.5,5.5,5.5s5.5-2.46,5.5-5.5V6H16.5z"/>
+            </svg>
+          </button>
+          
+          <button class="input-btn ${!this.config.microphone ? 'hidden' : ''}" id="micBtn" title="Grabar audio">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12,14c1.66,0,3-1.34,3-3V5c0-1.66-1.34-3-3-3S9,3.34,9,5v6C9,12.66,10.34,14,12,14z"/>
+              <path d="M17,11c0,2.76-2.24,5-5,5s-5-2.24-5-5H5c0,3.53,2.61,6.43,6,6.92V21h2v-3.08c3.39-0.49,6-3.39,6-6.92H17z"/>
+            </svg>
+          </button>
           
           <textarea 
             class="chat-input" 
