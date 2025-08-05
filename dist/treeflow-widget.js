@@ -133,7 +133,7 @@ class TreeFlowWidget extends HTMLElement {
           
           /* Widget button */
           --tfw-widget-button-size: 60px;
-          --tfw-widget-button-icon-size: 32px;
+          --tfw-widget-button-icon-size: 28px;
           --tfw-widget-button-bg: var(--tfw-primary-color);
           --tfw-widget-button-color: #ffffff;
           
