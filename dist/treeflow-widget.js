@@ -643,7 +643,7 @@ class TreeFlowWidget extends HTMLElement {
       <div class="chat-window" id="chatWindow">
         <div class="chat-header">
           <div class="chat-title">
-            ${this.config.botImage ? `<img src="${this.config.botImage}" class="bot-image" alt="Bot">` : this.config.botIcon ? `<span>${this.config.botIcon}</span>` : ''}
+            ${this.config.botImage ? `<img src="${this.config.botImage}" class="bot-image" alt="Bot">` : ''}
             ${this.config.title}
           </div>
           <div class="chat-controls">
