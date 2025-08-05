@@ -27,6 +27,11 @@ class TreeFlowWidget extends HTMLElement {
     this.render();
     this.setupEventListeners();
     
+    // Si hay un evento configurado, enviarlo independientemente del modo debug
+    if (this.config.event) {
+      setTimeout(() => this.sendStartEvent(this.config.event), 500);
+    }
+    
     // Enable fullscreen mode if debug is active
     if (this.config.debug) {
       this.classList.add('debug-fullscreen');
@@ -637,7 +642,7 @@ class TreeFlowWidget extends HTMLElement {
       </style>
       
       <button class="widget-button" id="toggleBtn">
-        ${this.config.widgetIcon}
+        ${this.config.widgetIcon || `<img src="${this.config.botIcon}" alt="Bot" width="32" height="32">`}
       </button>
       
       <div class="chat-window" id="chatWindow">
@@ -817,6 +822,11 @@ class TreeFlowWidget extends HTMLElement {
     chatWindow.classList.remove('open');
     this.isOpen = false;
     this.isMinimized = false;
+    
+    // Mostrar el botón flotante cuando se cierra el chat en modo debug
+    if (this.config.debug) {
+      this.showToggleButtonInDebug();
+    }
   }
 
   minimize() {
@@ -824,9 +834,19 @@ class TreeFlowWidget extends HTMLElement {
     if (this.isMinimized) {
       chatWindow.classList.remove('minimized');
       this.isMinimized = false;
+      
+      // Ocultar el botón flotante cuando se maximiza el chat en modo debug
+      if (this.config.debug) {
+        this.hideToggleButtonInDebug();
+      }
     } else {
       chatWindow.classList.add('minimized');
       this.isMinimized = true;
+      
+      // Mostrar el botón flotante cuando se minimiza el chat en modo debug
+      if (this.config.debug) {
+        this.showToggleButtonInDebug();
+      }
     }
   }
 
