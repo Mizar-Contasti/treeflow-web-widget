@@ -47,7 +47,7 @@ class TreeFlowWidget extends HTMLElement {
     
     return {
       title: this.getAttribute('title') || globalConfig.title || 'TreeFlow Chat',
-      endpoint: this.getAttribute('endpoint') || globalConfig.apiUrl || '',
+      endpoint: this.getAttribute('endpoint') || globalConfig.apiUrl || 'http://localhost:8000/message',
       treeId: this.getAttribute('tree-id') || this.getAttribute('tree_id') || globalConfig.treeId,
       botIcon: this.getAttribute('bot-icon') || globalConfig.botIcon || 'https://cdn.jsdelivr.net/gh/Mizar-Contasti/treeflow-web-widget@main/dist/luna_blanca_vector.svg',
       botImage: this.getAttribute('bot-image') || globalConfig.botImage || '',
