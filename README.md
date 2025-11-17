@@ -357,13 +357,44 @@ MIT License - ver [LICENSE](LICENSE) para más detalles.
 
 ## 🎯 Roadmap
 
-- [ ] Soporte para archivos adjuntos
+- [x] **Grabación de voz con STT** - Transcripción automática de audio
+- [x] **Soporte para archivos adjuntos** - Upload de archivos
 - [ ] Temas predefinidos
 - [ ] Integración con Google Analytics
 - [ ] Modo offline
 - [ ] Notificaciones push
 - [ ] Múltiples idiomas
 - [ ] Respuestas enriquecidas (carousels, cards, etc.)
+
+## 🎤 Funcionalidad de Voz (STT)
+
+El widget ahora soporta **grabación de voz con transcripción automática**:
+
+### **Configuración:**
+```html
+<treeflow-widget 
+  microphone="true"
+  endpoint="http://localhost:8000/message">
+</treeflow-widget>
+```
+
+### **Requisitos:**
+- Backend TreeFlow con servicio de voz habilitado
+- STT habilitado en la configuración del árbol
+- Árbol entrenado
+
+### **Flujo:**
+1. Usuario hace clic en el botón de micrófono 🎤
+2. Grabación de audio inicia (botón se pone rojo)
+3. Usuario hace clic de nuevo para detener
+4. Audio se envía automáticamente a `/voice/stt`
+5. Texto transcrito se muestra como mensaje del usuario
+6. Texto se envía automáticamente al bot
+7. Respuesta del bot se muestra
+
+### **Endpoints:**
+- **STT:** `POST /voice/stt` - Transcripción de audio
+- **Message:** `POST /message` - Respuesta del bot
 
 ---
 

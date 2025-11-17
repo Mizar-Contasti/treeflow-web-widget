@@ -981,17 +981,77 @@ class TreeFlowWidget extends HTMLElement {
   }
 
   async handleAudioMessage(audioBlob) {
-    this.addMessage('🎤 Audio enviado', 'user');
+    this.addMessage('🎤 Audio grabado', 'user');
     
     try {
       this.showTyping();
-      await this.delay(2000);
+      
+      // Enviar audio al backend STT para transcripción
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'recording.webm');
+      formData.append('tree_id', this.config.treeId);
+      formData.append('session_id', this.sessionId);
+      
+      // Construir URL del endpoint STT
+      const baseUrl = this.config.endpoint.replace('/message', '');
+      const sttUrl = `${baseUrl}/voice/stt`;
+      
+      console.log('Enviando audio a STT:', sttUrl);
+      
+      const sttResponse = await fetch(sttUrl, {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!sttResponse.ok) {
+        throw new Error(`Error STT: ${sttResponse.status} ${sttResponse.statusText}`);
+      }
+      
+      const sttData = await sttResponse.json();
+      console.log('Transcripción recibida:', sttData);
+      
       this.hideTyping();
-      this.addMessage('He recibido tu mensaje de audio. ¿Podrías escribir tu pregunta?', 'bot');
+      
+      // Verificar si hay texto transcrito
+      if (sttData.text && sttData.text.trim()) {
+        // Mostrar el texto transcrito como mensaje del usuario
+        this.addMessage(sttData.text, 'user');
+        
+        // Enviar el texto transcrito al bot para obtener respuesta
+        this.showTyping();
+        
+        // Add response delay if configured
+        if (this.config.responseDelay && this.config.responseDelaySeconds > 0) {
+          await this.delay(this.config.responseDelaySeconds);
+        }
+        
+        const response = await this.callBackend(sttData.text);
+        this.hideTyping();
+        
+        if (response.message) {
+          // Prepare debug data if debug mode is enabled
+          let debugData = null;
+          if (this.config.debug) {
+            debugData = {
+              request: this.pendingRequest,
+              response: this.pendingResponse,
+              stt: sttData // Agregar datos de STT al debug
+            };
+          }
+          
+          this.addMessage(response.message, 'bot', response.suggestions, debugData);
+          
+          // Clear pending debug data
+          this.pendingRequest = null;
+          this.pendingResponse = null;
+        }
+      } else {
+        this.addMessage('No se pudo transcribir el audio. Por favor, intenta de nuevo.', 'bot');
+      }
     } catch (error) {
       this.hideTyping();
       console.error('Error processing audio:', error);
-      this.addMessage('Error al procesar el audio.', 'bot');
+      this.addMessage('Error al procesar el audio: ' + error.message, 'bot');
     }
   }
 
