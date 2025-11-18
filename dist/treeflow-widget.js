@@ -12,6 +12,17 @@ class TreeFlowWidget extends HTMLElement {
     this.mediaRecorder = null;
     this.audioChunks = [];
     this.messageDebugData = new Map(); // Store debug data per message
+    
+    // Voice recording states
+    this.recordingTime = 0;
+    this.recordingTimer = null;
+    this.isPaused = false;
+    this.audioUrl = null;
+    this.audioDuration = 0;
+    this.audioContext = null;
+    this.analyser = null;
+    this.animationFrame = null;
+    this.recordingStream = null;
   }
 
   connectedCallback() {
@@ -646,6 +657,250 @@ class TreeFlowWidget extends HTMLElement {
           50% { opacity: 0.7; }
         }
         
+        /* Recording Area Styles */
+        .recording-area {
+          padding: var(--tfw-spacing-lg);
+          background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+          border-top: 1px solid var(--tfw-border-color);
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        
+        .recording-area.hidden {
+          display: none;
+        }
+        
+        .recording-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        
+        .recording-label {
+          font-size: 14px;
+          font-weight: 600;
+          color: #dc2626;
+        }
+        
+        .recording-timer {
+          font-size: 20px;
+          font-weight: 700;
+          color: #dc2626;
+          font-family: 'Courier New', monospace;
+        }
+        
+        #waveformCanvas {
+          width: 100%;
+          height: 60px;
+          background: rgba(255, 255, 255, 0.5);
+          border-radius: 8px;
+          border: 1px solid rgba(220, 38, 38, 0.2);
+        }
+        
+        .recording-controls {
+          display: flex;
+          gap: 8px;
+          justify-content: center;
+        }
+        
+        .control-recording-btn {
+          background: white;
+          border: 2px solid #e5e7eb;
+          padding: 8px 16px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 16px;
+          transition: all 0.2s;
+          min-width: 80px;
+        }
+        
+        .control-recording-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .pause-btn {
+          border-color: #fbbf24;
+        }
+        
+        .pause-btn:hover {
+          background: #fef3c7;
+          border-color: #f59e0b;
+        }
+        
+        .stop-btn {
+          border-color: #ef4444;
+        }
+        
+        .stop-btn:hover {
+          background: #fee2e2;
+          border-color: #dc2626;
+        }
+        
+        .cancel-btn {
+          border-color: #6b7280;
+        }
+        
+        .cancel-btn:hover {
+          background: #f3f4f6;
+          border-color: #4b5563;
+        }
+        
+        /* Audio Preview Styles */
+        .audio-preview {
+          padding: var(--tfw-spacing-lg);
+          background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+          border-top: 1px solid var(--tfw-border-color);
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        
+        .audio-preview.hidden {
+          display: none;
+        }
+        
+        .preview-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        
+        .preview-label {
+          font-size: 14px;
+          font-weight: 600;
+          color: #2563eb;
+        }
+        
+        .preview-duration {
+          font-size: 16px;
+          font-weight: 700;
+          color: #2563eb;
+          font-family: 'Courier New', monospace;
+        }
+        
+        #audioWaveform {
+          width: 100%;
+          height: 60px;
+          background: rgba(255, 255, 255, 0.5);
+          border-radius: 8px;
+          border: 1px solid rgba(37, 99, 235, 0.2);
+        }
+        
+        .preview-controls {
+          display: flex;
+          gap: 8px;
+          justify-content: center;
+        }
+        
+        .control-preview-btn {
+          background: white;
+          border: 2px solid #e5e7eb;
+          padding: 8px 16px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 14px;
+          transition: all 0.2s;
+          min-width: 100px;
+        }
+        
+        .control-preview-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .play-btn {
+          border-color: #2563eb;
+        }
+        
+        .play-btn:hover {
+          background: #dbeafe;
+          border-color: #1d4ed8;
+        }
+        
+        .send-audio-btn {
+          border-color: #10b981;
+        }
+        
+        .send-audio-btn:hover {
+          background: #d1fae5;
+          border-color: #059669;
+        }
+        
+        .discard-btn {
+          border-color: #6b7280;
+        }
+        
+        .discard-btn:hover {
+          background: #f3f4f6;
+          border-color: #4b5563;
+        }
+        
+        /* Audio Message Styles */
+        .message.audio-message {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        
+        .audio-content {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px;
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
+        }
+        
+        .message-waveform {
+          flex: 1;
+          height: 40px;
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 4px;
+        }
+        
+        .audio-duration {
+          font-size: 12px;
+          font-family: 'Courier New', monospace;
+          opacity: 0.8;
+          min-width: 40px;
+        }
+        
+        .play-audio-btn {
+          background: rgba(255, 255, 255, 0.2);
+          border: none;
+          border-radius: 50%;
+          width: 32px;
+          height: 32px;
+          cursor: pointer;
+          font-size: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s;
+        }
+        
+        .play-audio-btn:hover {
+          background: rgba(255, 255, 255, 0.3);
+          transform: scale(1.1);
+        }
+        
+        .transcription-placeholder {
+          font-style: italic;
+          opacity: 0.7;
+          font-size: 12px;
+          padding: 4px 8px;
+          background: rgba(0, 0, 0, 0.05);
+          border-radius: 4px;
+        }
+        
+        .transcribed-text {
+          margin-top: 4px;
+          padding-top: 8px;
+          border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
         .hidden {
           display: none !important;
         }
@@ -711,6 +966,50 @@ class TreeFlowWidget extends HTMLElement {
                 <div class="debug-json" id="responseJson"></div>
               </div>
             </div>
+          </div>
+        </div>
+        
+        <!-- Recording Area (hidden by default) -->
+        <div class="recording-area hidden" id="recordingArea">
+          <div class="recording-header">
+            <span class="recording-label">🎤 Grabando...</span>
+            <span class="recording-timer" id="recordingTimer">00:00</span>
+          </div>
+          
+          <canvas id="waveformCanvas" width="300" height="60"></canvas>
+          
+          <div class="recording-controls">
+            <button class="control-recording-btn pause-btn" id="pauseBtn" title="Pausar">
+              ⏸️
+            </button>
+            <button class="control-recording-btn stop-btn" id="stopBtn" title="Detener">
+              ⏹️
+            </button>
+            <button class="control-recording-btn cancel-btn" id="cancelBtn" title="Cancelar">
+              ❌
+            </button>
+          </div>
+        </div>
+        
+        <!-- Audio Preview Area (hidden by default) -->
+        <div class="audio-preview hidden" id="audioPreview">
+          <div class="preview-header">
+            <span class="preview-label">🎵 Audio grabado</span>
+            <span class="preview-duration" id="previewDuration">00:00</span>
+          </div>
+          
+          <canvas id="audioWaveform" width="300" height="60"></canvas>
+          
+          <div class="preview-controls">
+            <button class="control-preview-btn play-btn" id="playAudioBtn" title="Reproducir">
+              ▶️ Reproducir
+            </button>
+            <button class="control-preview-btn send-audio-btn" id="sendAudioBtn" title="Enviar">
+              📤 Enviar
+            </button>
+            <button class="control-preview-btn discard-btn" id="discardAudioBtn" title="Descartar">
+              🗑️ Descartar
+            </button>
           </div>
         </div>
         
@@ -788,6 +1087,40 @@ class TreeFlowWidget extends HTMLElement {
 
     if (this.config.microphone) {
       micBtn.addEventListener('click', () => this.handleMicrophone());
+      
+      // Recording control buttons
+      const pauseBtn = this.shadowRoot.getElementById('pauseBtn');
+      const stopBtn = this.shadowRoot.getElementById('stopBtn');
+      const cancelBtn = this.shadowRoot.getElementById('cancelBtn');
+      
+      if (pauseBtn) {
+        pauseBtn.addEventListener('click', () => this.pauseRecording());
+      }
+      
+      if (stopBtn) {
+        stopBtn.addEventListener('click', () => this.stopRecording());
+      }
+      
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => this.cancelRecording());
+      }
+      
+      // Preview control buttons
+      const playAudioBtn = this.shadowRoot.getElementById('playAudioBtn');
+      const sendAudioBtn = this.shadowRoot.getElementById('sendAudioBtn');
+      const discardAudioBtn = this.shadowRoot.getElementById('discardAudioBtn');
+      
+      if (playAudioBtn) {
+        playAudioBtn.addEventListener('click', () => this.playPreviewAudio());
+      }
+      
+      if (sendAudioBtn) {
+        sendAudioBtn.addEventListener('click', () => this.sendAudioFromPreview());
+      }
+      
+      if (discardAudioBtn) {
+        discardAudioBtn.addEventListener('click', () => this.discardAudio());
+      }
     }
     
     if (this.config.debug) {
@@ -940,8 +1273,6 @@ class TreeFlowWidget extends HTMLElement {
   }
 
   async handleMicrophone() {
-    const micBtn = this.shadowRoot.getElementById('micBtn');
-    
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       this.addMessage('Tu navegador no soporta grabación de audio.', 'bot');
       return;
@@ -949,30 +1280,9 @@ class TreeFlowWidget extends HTMLElement {
     
     try {
       if (!this.isRecording) {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        this.mediaRecorder = new MediaRecorder(stream);
-        this.audioChunks = [];
-        
-        this.mediaRecorder.ondataavailable = (event) => {
-          this.audioChunks.push(event.data);
-        };
-        
-        this.mediaRecorder.onstop = () => {
-          const audioBlob = new Blob(this.audioChunks, { type: 'audio/wav' });
-          this.handleAudioMessage(audioBlob);
-          stream.getTracks().forEach(track => track.stop());
-        };
-        
-        this.mediaRecorder.start();
-        this.isRecording = true;
-        micBtn.classList.add('recording');
-        micBtn.title = 'Detener grabación';
-        
+        await this.startRecording();
       } else {
-        this.mediaRecorder.stop();
-        this.isRecording = false;
-        micBtn.classList.remove('recording');
-        micBtn.title = 'Grabar audio';
+        this.stopRecording();
       }
     } catch (error) {
       console.error('Error accessing microphone:', error);
@@ -980,8 +1290,486 @@ class TreeFlowWidget extends HTMLElement {
     }
   }
 
+  async startRecording() {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    this.recordingStream = stream;
+    
+    // Configurar AudioContext para waveform
+    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const source = this.audioContext.createMediaStreamSource(stream);
+    this.analyser = this.audioContext.createAnalyser();
+    this.analyser.fftSize = 2048;
+    source.connect(this.analyser);
+    
+    // Configurar MediaRecorder
+    this.mediaRecorder = new MediaRecorder(stream);
+    this.audioChunks = [];
+    
+    this.mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        this.audioChunks.push(event.data);
+      }
+    };
+    
+    this.mediaRecorder.onstop = () => {
+      const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+      this.audioUrl = URL.createObjectURL(audioBlob);
+      this.showAudioPreview(audioBlob);
+    };
+    
+    // Iniciar grabación
+    this.mediaRecorder.start();
+    this.isRecording = true;
+    
+    // Mostrar área de grabación
+    const recordingArea = this.shadowRoot.getElementById('recordingArea');
+    recordingArea.classList.remove('hidden');
+    
+    // Ocultar input normal
+    const inputContainer = this.shadowRoot.getElementById('messageInput');
+    const sendBtn = this.shadowRoot.getElementById('sendBtn');
+    const fileBtn = this.shadowRoot.getElementById('fileBtn');
+    const micBtn = this.shadowRoot.getElementById('micBtn');
+    inputContainer.style.display = 'none';
+    sendBtn.style.display = 'none';
+    fileBtn.style.display = 'none';
+    micBtn.style.display = 'none';
+    
+    // Iniciar timer
+    this.recordingTime = 0;
+    this.recordingTimer = setInterval(() => {
+      this.recordingTime++;
+      this.updateTimerDisplay();
+    }, 1000);
+    
+    // Iniciar animación de waveform
+    this.drawWaveform();
+  }
+
+  drawWaveform() {
+    const canvas = this.shadowRoot.getElementById('waveformCanvas');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const bufferLength = this.analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    
+    const draw = () => {
+      if (!this.isRecording) return;
+      
+      this.animationFrame = requestAnimationFrame(draw);
+      
+      this.analyser.getByteTimeDomainData(dataArray);
+      
+      // Limpiar canvas
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Dibujar waveform
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#dc2626';
+      ctx.beginPath();
+      
+      const sliceWidth = canvas.width / bufferLength;
+      let x = 0;
+      
+      for (let i = 0; i < bufferLength; i++) {
+        const v = dataArray[i] / 128.0;
+        const y = v * canvas.height / 2;
+        
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+        
+        x += sliceWidth;
+      }
+      
+      ctx.lineTo(canvas.width, canvas.height / 2);
+      ctx.stroke();
+    };
+    
+    draw();
+  }
+
+  updateTimerDisplay() {
+    const timerEl = this.shadowRoot.getElementById('recordingTimer');
+    if (!timerEl) return;
+    
+    const minutes = Math.floor(this.recordingTime / 60);
+    const seconds = this.recordingTime % 60;
+    
+    timerEl.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  }
+
+  stopRecording() {
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      this.mediaRecorder.stop();
+    }
+    
+    this.isRecording = false;
+    
+    // Detener timer
+    if (this.recordingTimer) {
+      clearInterval(this.recordingTimer);
+      this.recordingTimer = null;
+    }
+    
+    // Detener animación
+    if (this.animationFrame) {
+      cancelAnimationFrame(this.animationFrame);
+      this.animationFrame = null;
+    }
+    
+    // Ocultar área de grabación
+    const recordingArea = this.shadowRoot.getElementById('recordingArea');
+    recordingArea.classList.add('hidden');
+    
+    // Mostrar input normal
+    const inputContainer = this.shadowRoot.getElementById('messageInput');
+    const sendBtn = this.shadowRoot.getElementById('sendBtn');
+    const fileBtn = this.shadowRoot.getElementById('fileBtn');
+    const micBtn = this.shadowRoot.getElementById('micBtn');
+    inputContainer.style.display = '';
+    sendBtn.style.display = '';
+    fileBtn.style.display = '';
+    micBtn.style.display = '';
+  }
+
+  cleanupRecording() {
+    // Detener stream
+    if (this.recordingStream) {
+      this.recordingStream.getTracks().forEach(track => track.stop());
+      this.recordingStream = null;
+    }
+    
+    // Cerrar AudioContext
+    if (this.audioContext) {
+      this.audioContext.close();
+      this.audioContext = null;
+    }
+    
+    this.analyser = null;
+  }
+
+  pauseRecording() {
+    if (!this.mediaRecorder) return;
+    
+    if (this.mediaRecorder.state === 'recording') {
+      this.mediaRecorder.pause();
+      clearInterval(this.recordingTimer);
+      this.isPaused = true;
+      
+      const pauseBtn = this.shadowRoot.getElementById('pauseBtn');
+      pauseBtn.textContent = '▶️';
+      pauseBtn.title = 'Reanudar';
+    } else if (this.mediaRecorder.state === 'paused') {
+      this.mediaRecorder.resume();
+      this.recordingTimer = setInterval(() => {
+        this.recordingTime++;
+        this.updateTimerDisplay();
+      }, 1000);
+      this.isPaused = false;
+      
+      const pauseBtn = this.shadowRoot.getElementById('pauseBtn');
+      pauseBtn.textContent = '⏸️';
+      pauseBtn.title = 'Pausar';
+    }
+  }
+
+  cancelRecording() {
+    // Detener grabación sin procesar
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      this.mediaRecorder.stop();
+    }
+    
+    this.isRecording = false;
+    this.audioChunks = [];
+    
+    // Limpiar recursos
+    this.cleanupRecording();
+    
+    // Detener timer
+    if (this.recordingTimer) {
+      clearInterval(this.recordingTimer);
+      this.recordingTimer = null;
+    }
+    
+    // Detener animación
+    if (this.animationFrame) {
+      cancelAnimationFrame(this.animationFrame);
+      this.animationFrame = null;
+    }
+    
+    // Ocultar área de grabación
+    const recordingArea = this.shadowRoot.getElementById('recordingArea');
+    recordingArea.classList.add('hidden');
+    
+    // Mostrar input normal
+    const inputContainer = this.shadowRoot.getElementById('messageInput');
+    const sendBtn = this.shadowRoot.getElementById('sendBtn');
+    const fileBtn = this.shadowRoot.getElementById('fileBtn');
+    const micBtn = this.shadowRoot.getElementById('micBtn');
+    inputContainer.style.display = '';
+    sendBtn.style.display = '';
+    fileBtn.style.display = '';
+    micBtn.style.display = '';
+  }
+
+  async showAudioPreview(audioBlob) {
+    // Ocultar área de grabación
+    const recordingArea = this.shadowRoot.getElementById('recordingArea');
+    recordingArea.classList.add('hidden');
+    
+    // Mostrar área de preview
+    const audioPreview = this.shadowRoot.getElementById('audioPreview');
+    audioPreview.classList.remove('hidden');
+    
+    // Obtener duración del audio
+    const audio = new Audio(this.audioUrl);
+    audio.addEventListener('loadedmetadata', () => {
+      this.audioDuration = audio.duration;
+      const durationEl = this.shadowRoot.getElementById('previewDuration');
+      const minutes = Math.floor(this.audioDuration / 60);
+      const seconds = Math.floor(this.audioDuration % 60);
+      durationEl.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    });
+    
+    // Generar waveform estático
+    await this.generateStaticWaveform(audioBlob);
+  }
+
+  async generateStaticWaveform(audioBlob) {
+    try {
+      const arrayBuffer = await audioBlob.arrayBuffer();
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+      
+      const canvas = this.shadowRoot.getElementById('audioWaveform');
+      if (!canvas) return;
+      
+      const ctx = canvas.getContext('2d');
+      const data = audioBuffer.getChannelData(0);
+      const step = Math.ceil(data.length / canvas.width);
+      const amp = canvas.height / 2;
+      
+      // Limpiar canvas
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Dibujar waveform estático
+      ctx.strokeStyle = '#2563eb';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      
+      for (let i = 0; i < canvas.width; i++) {
+        let min = 1.0;
+        let max = -1.0;
+        
+        for (let j = 0; j < step; j++) {
+          const datum = data[(i * step) + j];
+          if (datum < min) min = datum;
+          if (datum > max) max = datum;
+        }
+        
+        ctx.moveTo(i, (1 + min) * amp);
+        ctx.lineTo(i, (1 + max) * amp);
+      }
+      
+      ctx.stroke();
+      audioContext.close();
+    } catch (error) {
+      console.error('Error generating waveform:', error);
+    }
+  }
+
+  playPreviewAudio() {
+    if (!this.audioUrl) return;
+    
+    const audio = new Audio(this.audioUrl);
+    const playBtn = this.shadowRoot.getElementById('playAudioBtn');
+    
+    audio.play();
+    playBtn.textContent = '⏸️ Pausar';
+    
+    audio.addEventListener('ended', () => {
+      playBtn.textContent = '▶️ Reproducir';
+    });
+    
+    playBtn.onclick = () => {
+      if (audio.paused) {
+        audio.play();
+        playBtn.textContent = '⏸️ Pausar';
+      } else {
+        audio.pause();
+        playBtn.textContent = '▶️ Reproducir';
+      }
+    };
+  }
+
+  async sendAudioFromPreview() {
+    // Ocultar preview
+    const audioPreview = this.shadowRoot.getElementById('audioPreview');
+    audioPreview.classList.add('hidden');
+    
+    // Mostrar input normal
+    const inputContainer = this.shadowRoot.getElementById('messageInput');
+    const sendBtn = this.shadowRoot.getElementById('sendBtn');
+    const fileBtn = this.shadowRoot.getElementById('fileBtn');
+    const micBtn = this.shadowRoot.getElementById('micBtn');
+    inputContainer.style.display = '';
+    sendBtn.style.display = '';
+    fileBtn.style.display = '';
+    micBtn.style.display = '';
+    
+    // Obtener audioBlob del URL
+    const response = await fetch(this.audioUrl);
+    const audioBlob = await response.blob();
+    
+    // Procesar audio
+    await this.handleAudioMessage(audioBlob);
+    
+    // Limpiar recursos
+    this.cleanupRecording();
+    URL.revokeObjectURL(this.audioUrl);
+    this.audioUrl = null;
+  }
+
+  discardAudio() {
+    // Ocultar preview
+    const audioPreview = this.shadowRoot.getElementById('audioPreview');
+    audioPreview.classList.add('hidden');
+    
+    // Mostrar input normal
+    const inputContainer = this.shadowRoot.getElementById('messageInput');
+    const sendBtn = this.shadowRoot.getElementById('sendBtn');
+    const fileBtn = this.shadowRoot.getElementById('fileBtn');
+    const micBtn = this.shadowRoot.getElementById('micBtn');
+    inputContainer.style.display = '';
+    sendBtn.style.display = '';
+    fileBtn.style.display = '';
+    micBtn.style.display = '';
+    
+    // Limpiar recursos
+    this.cleanupRecording();
+    if (this.audioUrl) {
+      URL.revokeObjectURL(this.audioUrl);
+      this.audioUrl = null;
+    }
+    this.audioChunks = [];
+  }
+
+  async addAudioMessage(audioUrl, duration, audioBlob) {
+    const messagesContainer = this.shadowRoot.getElementById('messages');
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message user audio-message';
+    messageDiv.setAttribute('data-audio-url', audioUrl);
+    
+    const minutes = Math.floor(duration / 60);
+    const seconds = Math.floor(duration % 60);
+    const durationText = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    
+    messageDiv.innerHTML = `
+      <div class="audio-content">
+        <canvas class="message-waveform" width="200" height="40"></canvas>
+        <span class="audio-duration">${durationText}</span>
+        <button class="play-audio-btn">▶️</button>
+      </div>
+      <div class="transcription-placeholder">Transcribiendo...</div>
+    `;
+    
+    messagesContainer.appendChild(messageDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    
+    // Generar waveform para el mensaje
+    await this.generateMessageWaveform(messageDiv, audioBlob);
+    
+    // Agregar funcionalidad de reproducción
+    const playBtn = messageDiv.querySelector('.play-audio-btn');
+    let audio = null;
+    
+    playBtn.addEventListener('click', () => {
+      if (!audio) {
+        audio = new Audio(audioUrl);
+        audio.addEventListener('ended', () => {
+          playBtn.textContent = '▶️';
+        });
+      }
+      
+      if (audio.paused) {
+        audio.play();
+        playBtn.textContent = '⏸️';
+      } else {
+        audio.pause();
+        playBtn.textContent = '▶️';
+      }
+    });
+    
+    return messageDiv;
+  }
+
+  async generateMessageWaveform(messageDiv, audioBlob) {
+    try {
+      const arrayBuffer = await audioBlob.arrayBuffer();
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+      
+      const canvas = messageDiv.querySelector('.message-waveform');
+      if (!canvas) return;
+      
+      const ctx = canvas.getContext('2d');
+      const data = audioBuffer.getChannelData(0);
+      const step = Math.ceil(data.length / canvas.width);
+      const amp = canvas.height / 2;
+      
+      // Limpiar canvas
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Dibujar waveform
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      
+      for (let i = 0; i < canvas.width; i++) {
+        let min = 1.0;
+        let max = -1.0;
+        
+        for (let j = 0; j < step; j++) {
+          const datum = data[(i * step) + j];
+          if (datum < min) min = datum;
+          if (datum > max) max = datum;
+        }
+        
+        ctx.moveTo(i, (1 + min) * amp);
+        ctx.lineTo(i, (1 + max) * amp);
+      }
+      
+      ctx.stroke();
+      audioContext.close();
+    } catch (error) {
+      console.error('Error generating message waveform:', error);
+    }
+  }
+
+  updateMessageWithTranscription(messageDiv, transcribedText) {
+    const placeholder = messageDiv.querySelector('.transcription-placeholder');
+    if (placeholder) {
+      placeholder.remove();
+    }
+    
+    const transcriptionDiv = document.createElement('div');
+    transcriptionDiv.className = 'transcribed-text';
+    transcriptionDiv.textContent = transcribedText;
+    messageDiv.appendChild(transcriptionDiv);
+  }
+
   async handleAudioMessage(audioBlob) {
-    this.addMessage('🎤 Audio grabado', 'user');
+    // Crear mensaje con audio y waveform
+    const audioUrl = URL.createObjectURL(audioBlob);
+    const audioMessageDiv = await this.addAudioMessage(audioUrl, this.audioDuration, audioBlob);
     
     try {
       this.showTyping();
@@ -1014,8 +1802,8 @@ class TreeFlowWidget extends HTMLElement {
       
       // Verificar si hay texto transcrito
       if (sttData.text && sttData.text.trim()) {
-        // Mostrar el texto transcrito como mensaje del usuario
-        this.addMessage(sttData.text, 'user');
+        // Actualizar el mensaje de audio con la transcripción
+        this.updateMessageWithTranscription(audioMessageDiv, sttData.text);
         
         // Enviar el texto transcrito al bot para obtener respuesta
         this.showTyping();
