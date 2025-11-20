@@ -1,11 +1,13 @@
+const LUNA_ICON = "https://cdn.jsdelivr.net/gh/Mizar-Contasti/treeflow-web-widget@main/dist/luna_blanca_vector.svg";
+
 class TreeFlowWidget extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
     // Initialize session with persistence - only generate new if none exists
     this.sessionId = this.getOrCreateSessionId();
-    this.isOpen = false;
-    this.isMinimized = false;
+    // Chat states: 'closed' (circle button), 'open' (normal window), 'maximized' (fullscreen)
+    this.chatState = 'closed';
     this.messages = [];
     this.isTyping = false;
     this.isRecording = false;
@@ -38,23 +40,39 @@ class TreeFlowWidget extends HTMLElement {
     this.render();
     this.setupEventListeners();
     
-    // Si hay un evento configurado, enviarlo independientemente del modo debug
-    if (this.config.event) {
-      setTimeout(() => this.sendStartEvent(this.config.event), 500);
+    // Set initial chat state based on configuration
+    if (this.config.maximizeOnStart) {
+      this.chatState = 'maximized';
+      this.updateChatDisplay();
+    } else if (this.config.openOnStart) {
+      this.chatState = 'open';
+      this.updateChatDisplay();
     }
+    // Default state is 'closed' (set in constructor)
     
-    // Enable fullscreen mode if debug is active
-    if (this.config.debug) {
-      this.classList.add('debug-fullscreen');
-      this.open(); // Auto-open in debug mode
-      this.hideToggleButtonInDebug(); // Hide toggle button when chat is open
-    } else if (this.config.maximizeOnStart) {
-      setTimeout(() => this.open(), 100);
+    // Send start events if configured
+    if (this.config.startEvents && this.config.startEvents.length > 0) {
+      setTimeout(() => {
+        // Send the first event in the array
+        this.sendStartEvent(this.config.startEvents[0]);
+      }, 500);
     }
   }
 
   getConfiguration() {
     const globalConfig = window.treeflowConfig || {};
+    
+    // Parse start events from attribute or config
+    let startEvents = [];
+    const eventsAttr = this.getAttribute('start-events');
+    if (eventsAttr) {
+      startEvents = eventsAttr.split(',').map(e => e.trim());
+    } else if (globalConfig.startEvents) {
+      startEvents = Array.isArray(globalConfig.startEvents) ? globalConfig.startEvents : [globalConfig.startEvents];
+    } else if (this.getAttribute('event') || globalConfig.event) {
+      // Backward compatibility: convert single event to array
+      startEvents = [this.getAttribute('event') || globalConfig.event];
+    }
     
     return {
       title: this.getAttribute('title') || globalConfig.title || 'TreeFlow Chat',
@@ -62,12 +80,16 @@ class TreeFlowWidget extends HTMLElement {
       treeId: this.getAttribute('tree-id') || this.getAttribute('tree_id') || globalConfig.treeId,
       botIcon: this.getAttribute('bot-icon') || globalConfig.botIcon || 'https://cdn.jsdelivr.net/gh/Mizar-Contasti/treeflow-web-widget@main/dist/luna_blanca_vector.svg',
       botImage: this.getAttribute('bot-image') || globalConfig.botImage || '',
-      widgetIcon: this.getAttribute('widget-icon') || globalConfig.widgetIcon || '',
+      widgetIcon: this.getAttribute('widget-icon') || globalConfig.widgetIcon || LUNA_ICON,
       placeholder: this.getAttribute('placeholder') || globalConfig.placeholder || 'Escribe tu mensaje...',
-      event: this.getAttribute('event') || globalConfig.event || null,
+      startEvents: startEvents,
+      openOnStart: this.getAttribute('open-on-start') === 'true' || globalConfig.openOnStart || false,
       maximizeOnStart: this.getAttribute('maximize-on-start') === 'true' || globalConfig.maximizeOnStart || false,
+      enableMaximize: this.getAttribute('enable-maximize') !== 'false' && (globalConfig.enableMaximize !== false), // Default true
       fileUpload: this.getAttribute('file-upload') === 'true' || globalConfig.fileUpload || false,
       microphone: this.getAttribute('microphone') === 'true' || globalConfig.microphone || false,
+      sttEnabled: this.getAttribute('stt-enabled') === 'true' || globalConfig.sttEnabled || false,
+      sttEndpoint: this.getAttribute('stt-endpoint') || globalConfig.sttEndpoint || 'http://localhost:8002/stt',
       maxFileSize: parseInt(this.getAttribute('max-file-size')) || globalConfig.maxFileSize || 5242880,
       debug: this.getAttribute('debug') === 'true' || globalConfig.debug || false,
       responseDelay: this.getAttribute('response-delay') === 'true' || globalConfig.responseDelay || false,
@@ -166,50 +188,6 @@ class TreeFlowWidget extends HTMLElement {
           font-family: var(--tfw-font-family);
         }
         
-        /* Debug fullscreen mode */
-        :host(.debug-fullscreen) {
-          top: 0 !important;
-          left: 0 !important;
-          right: 0 !important;
-          bottom: 0 !important;
-          width: 100vw !important;
-          height: 100vh !important;
-          z-index: 99999 !important;
-        }
-        
-        :host(.debug-fullscreen) .chat-window {
-          width: 100% !important;
-          height: 100% !important;
-          max-width: none !important;
-          max-height: none !important;
-          border-radius: 0 !important;
-          position: static !important;
-        }
-        
-        /* En modo debug, ocultar el botón toggle por defecto */
-        :host(.debug-fullscreen) .toggle-btn {
-          display: none !important;
-        }
-        
-        /* Solo mostrar cuando el chat está cerrado (no tiene clase 'open') */
-        :host(.debug-fullscreen) .chat-window:not(.open) + .toggle-btn,
-        :host(.debug-fullscreen):not(:has(.chat-window.open)) .toggle-btn {
-          display: block !important;
-          position: fixed !important;
-          top: 20px !important;
-          right: 20px !important;
-          z-index: 100000 !important;
-          background: var(--tfw-widget-button-bg) !important;
-          color: var(--tfw-widget-button-color) !important;
-          border: none !important;
-          border-radius: 50% !important;
-          width: 60px !important;
-          height: 60px !important;
-          font-size: 24px !important;
-          cursor: pointer !important;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-        }
-        
         .widget-button {
           width: var(--tfw-widget-button-size);
           height: var(--tfw-widget-button-size);
@@ -231,9 +209,9 @@ class TreeFlowWidget extends HTMLElement {
         }
         
         .chat-window {
-          position: absolute;
-          right: 0;
-          bottom: calc(var(--tfw-widget-button-size) + 10px);
+          position: fixed;
+          right: var(--tfw-widget-position-right);
+          bottom: var(--tfw-widget-position-bottom);
           width: var(--tfw-widget-width);
           height: var(--tfw-widget-height);
           background: var(--tfw-background-color);
@@ -244,18 +222,101 @@ class TreeFlowWidget extends HTMLElement {
           overflow: hidden;
           transform: scale(0.8);
           opacity: 0;
-          transition: var(--tfw-transition);
+          transition: opacity 0.3s ease, transform 0.3s ease;
+          z-index: var(--tfw-widget-z-index);
         }
         
-        .chat-window.open {
+        /* Closed state - Circle button */
+        .chat-window.closed {
           display: flex;
+          position: fixed;
+          right: var(--tfw-widget-position-right);
+          bottom: var(--tfw-widget-position-bottom);
+          top: auto;
+          left: auto;
+          width: var(--tfw-widget-button-size);
+          height: var(--tfw-widget-button-size);
+          border-radius: 50%;
+          background: var(--tfw-widget-button-bg);
           transform: scale(1);
           opacity: 1;
+          cursor: pointer;
+          justify-content: center;
+          align-items: center;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
         
-        .chat-window.minimized {
-          height: 60px;
-          overflow: hidden;
+        .chat-window.closed:hover {
+          transform: scale(1.05);
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Open state - Normal window */
+        .chat-window.open {
+          display: flex;
+          position: fixed;
+          right: var(--tfw-widget-position-right);
+          bottom: var(--tfw-widget-position-bottom);
+          top: auto;
+          left: auto;
+          width: var(--tfw-widget-width);
+          height: var(--tfw-widget-height);
+          transform: scale(1);
+          opacity: 1;
+          cursor: default;
+        }
+        
+        /* Maximized state - Fullscreen */
+        .chat-window.maximized {
+          display: flex;
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          width: 100vw;
+          height: 100vh;
+          border-radius: 0;
+          transform: scale(1);
+          opacity: 1;
+          z-index: 99999;
+        }
+        
+        /* Hide content when closed */
+        .chat-window.closed .chat-header,
+        .chat-window.closed .chat-messages,
+        .chat-window.closed .typing-indicator,
+        .chat-window.closed .chat-input-container,
+        .chat-window.closed .recording-area,
+        .chat-window.closed .audio-preview {
+          display: none !important;
+        }
+        
+        /* Show logo when closed */
+        .chat-window.closed .widget-icon-closed {
+          display: block;
+          width: 32px;
+          height: 32px;
+        }
+        
+        .chat-window.closed .widget-icon-closed:empty,
+        .chat-window.closed .widget-icon-closed.error {
+          display: none;
+        }
+        
+        .chat-window.closed .widget-icon-fallback {
+          display: block;
+          font-size: 28px;
+        }
+        
+        .chat-window.closed .widget-icon-closed:not(:empty):not(.error) + .widget-icon-fallback {
+          display: none;
+        }
+        
+        .widget-icon-closed,
+        .widget-icon-fallback {
+          display: none;
         }
         
         .chat-header {
@@ -1111,6 +1172,8 @@ class TreeFlowWidget extends HTMLElement {
       </button>
       
       <div class="chat-window" id="chatWindow">
+        ${this.config.widgetIcon ? `<img src="${this.config.widgetIcon}" class="widget-icon-closed" alt="Widget Icon" onerror="this.classList.add('error')">` : ''}
+        <span class="widget-icon-fallback">🌙</span>
         <div class="chat-header">
           <div class="chat-title">
             ${this.config.botImage ? `<img src="${this.config.botImage}" class="bot-image" alt="Bot">` : ''}
@@ -1118,6 +1181,7 @@ class TreeFlowWidget extends HTMLElement {
           </div>
           <div class="chat-controls">
             <button class="control-btn" id="minimizeBtn" title="Minimizar">−</button>
+            ${this.config.enableMaximize ? '<button class="control-btn" id="maximizeBtn" title="Maximizar">⛶</button>' : ''}
             <button class="control-btn" id="closeBtn" title="Cerrar">×</button>
           </div>
         </div>
@@ -1243,8 +1307,10 @@ class TreeFlowWidget extends HTMLElement {
 
   setupEventListeners() {
     const toggleBtn = this.shadowRoot.getElementById('toggleBtn');
+    const chatWindow = this.shadowRoot.getElementById('chatWindow');
     const closeBtn = this.shadowRoot.getElementById('closeBtn');
     const minimizeBtn = this.shadowRoot.getElementById('minimizeBtn');
+    const maximizeBtn = this.shadowRoot.getElementById('maximizeBtn');
     const sendBtn = this.shadowRoot.getElementById('sendBtn');
     const messageInput = this.shadowRoot.getElementById('messageInput');
     const fileBtn = this.shadowRoot.getElementById('fileBtn');
@@ -1260,8 +1326,21 @@ class TreeFlowWidget extends HTMLElement {
     const copyResponseBtn = this.shadowRoot.getElementById('copyResponseBtn');
 
     toggleBtn.addEventListener('click', () => this.toggle());
+    
+    // Click on closed circle to open
+    chatWindow.addEventListener('click', (e) => {
+      if (this.chatState === 'closed' && e.target === chatWindow) {
+        this.open();
+      }
+    });
+    
     closeBtn.addEventListener('click', () => this.close());
-    minimizeBtn.addEventListener('click', () => this.minimize());
+    if (minimizeBtn) {
+      minimizeBtn.addEventListener('click', () => this.minimize());
+    }
+    if (maximizeBtn) {
+      maximizeBtn.addEventListener('click', () => this.toggleMaximize());
+    }
     sendBtn.addEventListener('click', () => this.handleSendMessage());
     
     messageInput.addEventListener('keydown', (e) => {
@@ -1344,56 +1423,105 @@ class TreeFlowWidget extends HTMLElement {
   }
 
   toggle() {
-    if (this.isOpen) {
-      this.close();
+    if (this.chatState === 'closed') {
+      this.chatState = 'open';
     } else {
-      this.open();
+      this.chatState = 'closed';
     }
+    this.updateChatDisplay();
   }
 
   open() {
-    const chatWindow = this.shadowRoot.getElementById('chatWindow');
-    chatWindow.classList.add('open');
-    chatWindow.classList.remove('minimized');
-    this.isOpen = true;
-    this.isMinimized = false;
+    this.chatState = 'open';
+    this.updateChatDisplay();
     
     setTimeout(() => {
       const messageInput = this.shadowRoot.getElementById('messageInput');
-      messageInput.focus();
+      if (messageInput) messageInput.focus();
     }, 300);
   }
 
   close() {
-    const chatWindow = this.shadowRoot.getElementById('chatWindow');
-    chatWindow.classList.remove('open');
-    this.isOpen = false;
-    this.isMinimized = false;
-    
-    // Mostrar el botón flotante cuando se cierra el chat en modo debug
-    if (this.config.debug) {
-      this.showToggleButtonInDebug();
-    }
+    this.chatState = 'closed';
+    this.updateChatDisplay();
   }
 
   minimize() {
+    // From maximized -> go to open
+    // From open -> go to closed
+    if (this.chatState === 'maximized') {
+      this.chatState = 'open';
+    } else if (this.chatState === 'open') {
+      this.chatState = 'closed';
+    }
+    this.updateChatDisplay();
+  }
+
+  maximize() {
+    this.chatState = 'maximized';
+    this.updateChatDisplay();
+  }
+
+  restore() {
+    this.chatState = 'open';
+    this.updateChatDisplay();
+  }
+
+  toggleMaximize() {
+    if (this.chatState === 'maximized') {
+      this.restore();
+    } else if (this.chatState === 'open') {
+      this.maximize();
+    }
+  }
+
+  updateChatDisplay() {
     const chatWindow = this.shadowRoot.getElementById('chatWindow');
-    if (this.isMinimized) {
-      chatWindow.classList.remove('minimized');
-      this.isMinimized = false;
-      
-      // Ocultar el botón flotante cuando se maximiza el chat en modo debug
+    const toggleBtn = this.shadowRoot.getElementById('toggleBtn');
+    const minimizeBtn = this.shadowRoot.getElementById('minimizeBtn');
+    const maximizeBtn = this.shadowRoot.getElementById('maximizeBtn');
+    
+    if (!chatWindow) return;
+    
+    // Remove all state classes
+    chatWindow.classList.remove('closed', 'open', 'maximized');
+    
+    // Add current state class
+    chatWindow.classList.add(this.chatState);
+    
+    // Update toggle button visibility
+    if (toggleBtn) {
       if (this.config.debug) {
-        this.hideToggleButtonInDebug();
+        // In debug mode, show button only when closed
+        toggleBtn.style.display = this.chatState === 'closed' ? 'flex' : 'none';
+      } else {
+        // In normal mode, show button only when closed
+        toggleBtn.style.display = this.chatState === 'closed' ? 'flex' : 'none';
       }
-    } else {
-      chatWindow.classList.add('minimized');
-      this.isMinimized = true;
-      
-      // Mostrar el botón flotante cuando se minimiza el chat en modo debug
-      if (this.config.debug) {
-        this.showToggleButtonInDebug();
+    }
+    
+    // Update minimize button visibility (hide when closed)
+    if (minimizeBtn) {
+      minimizeBtn.style.display = this.chatState === 'closed' ? 'none' : 'flex';
+    }
+    
+    // Update maximize button icon and title
+    if (maximizeBtn) {
+      if (this.chatState === 'maximized') {
+        maximizeBtn.textContent = '⛶';
+        maximizeBtn.title = 'Restaurar';
+      } else {
+        maximizeBtn.textContent = '⛶';
+        maximizeBtn.title = 'Maximizar';
       }
+    }
+    
+    // Focus input when opening
+    if (this.chatState === 'open' || this.chatState === 'maximized') {
+      setTimeout(() => {
+        const messageInput = this.shadowRoot.getElementById('messageInput');
+        if (messageInput) messageInput.focus();
+      }, 300);
     }
   }
 
@@ -1979,6 +2107,17 @@ class TreeFlowWidget extends HTMLElement {
     try {
       this.showTyping();
       
+      // Check if STT is enabled
+      if (!this.config.sttEnabled) {
+        // If STT is disabled, just send the audio without transcription
+        const placeholder = audioMessageDiv.querySelector('.transcription-placeholder');
+        if (placeholder) {
+          placeholder.textContent = 'Transcripción deshabilitada';
+        }
+        this.hideTyping();
+        return;
+      }
+      
       // Enviar audio al backend STT para transcripción
       const formData = new FormData();
       formData.append('audio', audioBlob, 'recording.webm');
@@ -1987,9 +2126,8 @@ class TreeFlowWidget extends HTMLElement {
       formData.append('context', 'testing'); // Usar modelo base (rápido)
       formData.append('language', 'es');
       
-      // Construir URL del endpoint STT
-      const baseUrl = this.config.endpoint.replace('/message', '');
-      const sttUrl = `${baseUrl}/api/voice/stt`;
+      // Use configured STT endpoint
+      const sttUrl = this.config.sttEndpoint;
       
       console.log('Enviando audio a STT:', sttUrl);
       
@@ -2032,6 +2170,16 @@ class TreeFlowWidget extends HTMLElement {
       // Agregar mensaje de texto con la transcripción (separado del audio)
       this.addMessage(transcription, 'user');
       
+      // Prepare STT info for backend
+      const sttInfo = {
+        status: 'enabled',
+        audio_duration: sttData.audio_duration || null,
+        process_time: sttData.process_time || null,
+        model_used: sttData.model_used || null,
+        realtime_factor: sttData.realtime_factor || null,
+        confidence: sttData.confidence || null
+      };
+      
       // Enviar el texto transcrito al bot para obtener respuesta
       this.showTyping();
       
@@ -2040,7 +2188,7 @@ class TreeFlowWidget extends HTMLElement {
         await this.delay(this.config.responseDelaySeconds);
       }
       
-      const response = await this.callBackend(transcription);
+      const response = await this.callBackend(transcription, false, sttInfo);
       this.hideTyping();
       
       if (response.message) {
@@ -2101,7 +2249,7 @@ class TreeFlowWidget extends HTMLElement {
     }
   }
 
-  async callBackend(message, isStartEvent = false) {
+  async callBackend(message, isStartEvent = false, sttInfo = null) {
     this.config = this.getConfiguration();
     
     if (!this.config.endpoint) {
@@ -2115,6 +2263,11 @@ class TreeFlowWidget extends HTMLElement {
       session_id: this.sessionId,
       is_start_event: isStartEvent
     };
+    
+    // Add STT info if provided
+    if (sttInfo) {
+      requestPayload.stt_info = sttInfo;
+    }
 
     // Store request for debug
     if (this.config.debug) {
@@ -2401,32 +2554,6 @@ class TreeFlowWidget extends HTMLElement {
         document.body.removeChild(errorElement);
       }
     }, 10000);
-  }
-  
-  hideToggleButtonInDebug() {
-    if (!this.config.debug) return;
-    
-    const toggleBtn = this.shadowRoot.getElementById('toggleBtn');
-    if (toggleBtn) {
-      toggleBtn.style.display = 'none';
-      toggleBtn.style.visibility = 'hidden';
-      toggleBtn.style.opacity = '0';
-    }
-  }
-  
-  showToggleButtonInDebug() {
-    if (!this.config.debug) return;
-    
-    const toggleBtn = this.shadowRoot.getElementById('toggleBtn');
-    if (toggleBtn) {
-      toggleBtn.style.display = 'block';
-      toggleBtn.style.visibility = 'visible';
-      toggleBtn.style.opacity = '1';
-      toggleBtn.style.position = 'fixed';
-      toggleBtn.style.top = '20px';
-      toggleBtn.style.right = '20px';
-      toggleBtn.style.zIndex = '100000';
-    }
   }
 }
 
