@@ -1,0 +1,23 @@
+{
+  "name": "treeflow-web-widget",
+  "version": "1.0.0",
+  "description": "Widget de chat embebible para TreeFlow - Integración súper simple",
+  "main": "dist/treeflow-widget.js",
+  "files": [
+    "dist/treeflow-widget.js"
+  ],
+  "keywords": [
+    "chatbot",
+    "widget",
+    "treeflow",
+    "chat",
+    "embeddable"
+  ],
+  "author": "Tu Nombre",
+  "license": "MIT",
+  "homepage": "https://github.com/tu-usuario/treeflow-web-widget",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tu-usuario/treeflow-web-widget.git"
+  }
+}

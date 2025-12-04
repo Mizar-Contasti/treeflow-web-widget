@@ -1,0 +1,148 @@
+
+> treeflow-web-widget@1.0.0 build
+> webpack --mode production
+
+assets by status 85 KiB [1m[32m[cached][39m[22m 4 assets
+orphan modules 40.9 KiB [1m[33m[orphan][39m[22m 3 modules
+cacheable modules 119 KiB
+  [1m./src/treeflow-widget.js + 3 modules[39m[22m 114 KiB [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
+  [1m./src/widget-loader.js[39m[22m 4.87 KiB [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
+
+[1m[31mERROR[39m[22m in [1m  [1m[31mError[39m[22m[1m: Child compilation [1m[31mfailed[39m[22m[1m:
+  Module [1m[31mnot found[39m[22m[1m: [1m[31mError[39m[22m[1m: Can't resolve 'C:\Users\GOTHICS\Documents\vibe\treefl  ow-web-widget\demo\test-backend.html' in 'C:\Users\GOTHICS\Documents\vibe\tree  flow-web-widget'
+  ModuleNotFoundError: Module [1m[31mnot found[39m[22m[1m: [1m[31mError[39m[22m[1m: Can't resolve 'C:\Users\GOTHICS\  Documents\vibe\treeflow-web-widget\demo\test-backend.html' in 'C:\Users\GOTHIC  S\Documents\vibe\treeflow-web-widget'
+      at C:\Users\GOTHICS\Documents\vibe\treeflow-web-widget\node_modules\webpac  k\lib\Compilation.js:2246:28
+      at C:\Users\GOTHICS\Documents\vibe\treeflow-web-widget\node_modules\webpac  k\lib\NormalModuleFactory.js:949:13
+      at eval (eval at create (C:\Users\GOTHICS\Documents\vibe\treeflow-web-widg  et\node_modules\tapable\lib\HookCodeFactory.js:33:10), <anonymous>:10:1)
+      at C:\Users\GOTHICS\Documents\vibe\treeflow-web-widget\node_modules\webpac  k\lib\NormalModuleFactory.js:347:22
+      at eval (eval at create (C:\Users\GOTHICS\Documents\vibe\treeflow-web-widg  et\node_modules\tapable\lib\HookCodeFactory.js:33:10), <anonymous>:9:1)
+      at C:\Users\GOTHICS\Documents\vibe\treeflow-web-widget\node_modules\webpac  k\lib\NormalModuleFactory.js:532:22
+      at C:\Users\GOTHICS\Documents\vibe\treeflow-web-widget\node_modules\webpac  k\lib\NormalModuleFactory.js:163:10
+      at C:\Users\GOTHICS\Documents\vibe\treeflow-web-widget\node_modules\webpac  k\lib\NormalModuleFactory.js:807:25
+      at C:\Users\GOTHICS\Documents\vibe\treeflow-web-widget\node_modules\webpac  k\lib\NormalModuleFactory.js:1034:8
+      at C:\Users\GOTHICS\Documents\vibe\treeflow-web-widget\node_modules\webpac  k\lib\NormalModuleFactory.js:1163:5
+  
+  - Compilation.js:2246 
+    [treeflow-web-widget]/[webpack]/lib/Compilation.js:2246:28
+  
+  - NormalModuleFactory.js:949 
+    [treeflow-web-widget]/[webpack]/lib/NormalModuleFactory.js:949:13
+  
+  
+  - NormalModuleFactory.js:347 
+    [treeflow-web-widget]/[webpack]/lib/NormalModuleFactory.js:347:22
+  
+  
+  - NormalModuleFactory.js:532 
+    [treeflow-web-widget]/[webpack]/lib/NormalModuleFactory.js:532:22
+  
+  - NormalModuleFactory.js:163 
+    [treeflow-web-widget]/[webpack]/lib/NormalModuleFactory.js:163:10
+  
+  - NormalModuleFactory.js:807 
+    [treeflow-web-widget]/[webpack]/lib/NormalModuleFactory.js:807:25
+  
+  - NormalModuleFactory.js:1034 
+    [treeflow-web-widget]/[webpack]/lib/NormalModuleFactory.js:1034:8
+  
+  - NormalModuleFactory.js:1163 
+    [treeflow-web-widget]/[webpack]/lib/NormalModuleFactory.js:1163:5
+  
+  - child-compiler.js:211 
+    [treeflow-web-widget]/[html-webpack-plugin]/lib/child-compiler.js:211:18
+  
+  - Compiler.js:650 finalCallback
+    [treeflow-web-widget]/[webpack]/lib/Compiler.js:650:5
+  
+  - Compiler.js:686 
+    [treeflow-web-widget]/[webpack]/lib/Compiler.js:686:11
+  
+  - Compiler.js:1377 
+    [treeflow-web-widget]/[webpack]/lib/Compiler.js:1377:17
+  
+  
+  - Hook.js:20 Hook.CALL_ASYNC_DELEGATE [as _callAsync]
+    [treeflow-web-widget]/[tapable]/lib/Hook.js:20:14
+  
+  - Compiler.js:1373 
+    [treeflow-web-widget]/[webpack]/lib/Compiler.js:1373:33
+  
+  - Compilation.js:3079 finalCallback
+    [treeflow-web-widget]/[webpack]/lib/Compilation.js:3079:11
+  
+  - Compilation.js:3422 
+    [treeflow-web-widget]/[webpack]/lib/Compilation.js:3422:11
+  
+  
+[39m[22m
+
+[1m[31mERROR[39m[22m in [1m  [1m[31mError[39m[22m[1m: Child compilation [1m[31mfailed[39m[22m[1m:
+  Module [1m[31mnot found[39m[22m[1m: [1m[31mError[39m[22m[1m: Can't resolve 'C:\Users\GOTHICS\Documents\vibe\treefl  ow-web-widget\demo\test-backend.html' in 'C:\Users\GOTHICS\Documents\vibe\tree  flow-web-widget'
+  ModuleNotFoundError: Module [1m[31mnot found[39m[22m[1m: [1m[31mError[39m[22m[1m: Can't resolve 'C:\Users\GOTHICS\  Documents\vibe\treeflow-web-widget\demo\test-backend.html' in 'C:\Users\GOTHIC  S\Documents\vibe\treeflow-web-widget'
+      at C:\Users\GOTHICS\Documents\vibe\treeflow-web-widget\node_modules\webpac  k\lib\Compilation.js:2246:28
+      at C:\Users\GOTHICS\Documents\vibe\treeflow-web-widget\node_modules\webpac  k\lib\NormalModuleFactory.js:949:13
+      at eval (eval at create (C:\Users\GOTHICS\Documents\vibe\treeflow-web-widg  et\node_modules\tapable\lib\HookCodeFactory.js:33:10), <anonymous>:10:1)
+      at C:\Users\GOTHICS\Documents\vibe\treeflow-web-widget\node_modules\webpac  k\lib\NormalModuleFactory.js:347:22
+      at eval (eval at create (C:\Users\GOTHICS\Documents\vibe\treeflow-web-widg  et\node_modules\tapable\lib\HookCodeFactory.js:33:10), <anonymous>:9:1)
+      at C:\Users\GOTHICS\Documents\vibe\treeflow-web-widget\node_modules\webpac  k\lib\NormalModuleFactory.js:532:22
+      at C:\Users\GOTHICS\Documents\vibe\treeflow-web-widget\node_modules\webpac  k\lib\NormalModuleFactory.js:163:10
+      at C:\Users\GOTHICS\Documents\vibe\treeflow-web-widget\node_modules\webpac  k\lib\NormalModuleFactory.js:807:25
+      at C:\Users\GOTHICS\Documents\vibe\treeflow-web-widget\node_modules\webpac  k\lib\NormalModuleFactory.js:1034:8
+      at C:\Users\GOTHICS\Documents\vibe\treeflow-web-widget\node_modules\webpac  k\lib\NormalModuleFactory.js:1163:5
+  
+  - Compilation.js:2246 
+    [treeflow-web-widget]/[webpack]/lib/Compilation.js:2246:28
+  
+  - NormalModuleFactory.js:949 
+    [treeflow-web-widget]/[webpack]/lib/NormalModuleFactory.js:949:13
+  
+  
+  - NormalModuleFactory.js:347 
+    [treeflow-web-widget]/[webpack]/lib/NormalModuleFactory.js:347:22
+  
+  
+  - NormalModuleFactory.js:532 
+    [treeflow-web-widget]/[webpack]/lib/NormalModuleFactory.js:532:22
+  
+  - NormalModuleFactory.js:163 
+    [treeflow-web-widget]/[webpack]/lib/NormalModuleFactory.js:163:10
+  
+  - NormalModuleFactory.js:807 
+    [treeflow-web-widget]/[webpack]/lib/NormalModuleFactory.js:807:25
+  
+  - NormalModuleFactory.js:1034 
+    [treeflow-web-widget]/[webpack]/lib/NormalModuleFactory.js:1034:8
+  
+  - NormalModuleFactory.js:1163 
+    [treeflow-web-widget]/[webpack]/lib/NormalModuleFactory.js:1163:5
+  
+  - child-compiler.js:211 
+    [treeflow-web-widget]/[html-webpack-plugin]/lib/child-compiler.js:211:18
+  
+  - Compiler.js:650 finalCallback
+    [treeflow-web-widget]/[webpack]/lib/Compiler.js:650:5
+  
+  - Compiler.js:686 
+    [treeflow-web-widget]/[webpack]/lib/Compiler.js:686:11
+  
+  - Compiler.js:1377 
+    [treeflow-web-widget]/[webpack]/lib/Compiler.js:1377:17
+  
+  
+  - Hook.js:20 Hook.CALL_ASYNC_DELEGATE [as _callAsync]
+    [treeflow-web-widget]/[tapable]/lib/Hook.js:20:14
+  
+  - Compiler.js:1373 
+    [treeflow-web-widget]/[webpack]/lib/Compiler.js:1373:33
+  
+  - Compilation.js:3079 finalCallback
+    [treeflow-web-widget]/[webpack]/lib/Compilation.js:3079:11
+  
+  - Compilation.js:3422 
+    [treeflow-web-widget]/[webpack]/lib/Compilation.js:3422:11
+  
+  
+[39m[22m
+
+[1m[31m1 ERROR in child compilations (Use 'stats.children: true' resp. '--stats-children' for more details)[39m[22m
+webpack 5.101.0 compiled with [1m[31m3 errors[39m[22m in 1946 ms
