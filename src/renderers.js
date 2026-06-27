@@ -70,7 +70,8 @@ function renderCard(block) {
   const items = block.items || [block];
 
   return items.map(item => {
-    const imageUrl = item.image || item.imageUrl || item.mediaUrl || item.url;
+    const rawImageUrl = item.image || item.imageUrl || item.mediaUrl || item.url;
+    const imageUrl = rawImageUrl || 'https://picsum.photos/400/200';
 
     return `
     <div class="rich-card">
@@ -237,12 +238,15 @@ function renderFile(block) {
 function renderImage(block) {
   const items = block.items || [block];
 
-  return items.map(item => `
+  return items.map(item => {
+    const finalUrl = item.url || 'https://picsum.photos/400/200';
+    return `
     <div class="rich-card">
-      <img src="${item.url}" class="rich-image-standalone" alt="${item.title || 'Image'}">
+      <img src="${finalUrl}" class="rich-image-standalone" alt="${item.title || 'Image'}">
       ${item.title ? `<div class="rich-card-content"><div class="rich-card-text">${item.title}</div></div>` : ''}
     </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 function renderButtons(block) {
