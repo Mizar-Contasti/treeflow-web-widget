@@ -33,7 +33,7 @@ class TreeFlowWidget extends HTMLElement {
   }
 
   static get observedAttributes() {
-    return ['title', 'endpoint', 'tree-id', 'bot-icon', 'bot-image', 'placeholder', 'primary-color', 'secondary-color', 'position', 'z-index', 'file-upload', 'microphone', 'debug', 'max-file-size', 'response-delay', 'stt-enabled', 'stt-endpoint', 'start-event', 'enable-maximize'];
+    return ['title', 'endpoint', 'tree-id', 'widget-icon', 'bot-icon', 'bot-image', 'placeholder', 'primary-color', 'secondary-color', 'position', 'z-index', 'file-upload', 'microphone', 'debug', 'max-file-size', 'response-delay', 'stt-enabled', 'stt-endpoint', 'start-event', 'enable-maximize'];
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
@@ -87,7 +87,7 @@ class TreeFlowWidget extends HTMLElement {
       endpoint: getVal('endpoint', 'apiUrl', 'http://localhost:8000/message'),
       treeId: getVal('tree-id', 'treeId', null) || this.getAttribute('tree_id'),
       botIcon: getVal('bot-icon', 'botIcon', null), // HTML string for icon
-      widgetIcon: getVal('widget-icon', 'widgetIcon', null), // URL for image
+      widgetIcon: getVal('widget-icon', 'widgetIcon', 'cc-moon'), // URL or 'cc-moon' for built-in luna
       botImage: getVal('bot-image', 'botImage', null),
       placeholder: getVal('placeholder', 'placeholder', 'Escribe un mensaje...'),
       primaryColor: getVal('primary-color', 'primaryColor', '#2563eb'),
@@ -130,11 +130,11 @@ class TreeFlowWidget extends HTMLElement {
       </style>
       
       <button class="widget-button" id="toggleBtn">
-        ${this.config.widgetIcon ? `<img src="${this.config.widgetIcon}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : ICONS.LUNA}
+        ${(this.config.widgetIcon && this.config.widgetIcon !== 'cc-moon') ? `<img src="${this.config.widgetIcon}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : ICONS.LUNA}
       </button>
-      
+
       <div class="chat-window ${this.chatState}" id="chatWindow">
-        ${this.config.widgetIcon ? `<img src="${this.config.widgetIcon}" class="widget-icon-closed" alt="Widget Icon" onerror="this.classList.add('error')">` : ''}
+        ${(this.config.widgetIcon && this.config.widgetIcon !== 'cc-moon') ? `<img src="${this.config.widgetIcon}" class="widget-icon-closed" alt="Widget Icon" onerror="this.classList.add('error')">` : ''}
         <span class="widget-icon-fallback">🌙</span>
         
         <div class="chat-header">
