@@ -1,5 +1,5 @@
 import { WIDGET_STYLES } from './styles.js';
-import { ICONS } from './icons.js';
+import { ICONS, getIconHtml } from './icons.js';
 import { renderRichMessage } from './renderers.js';
 
 class TreeFlowWidget extends HTMLElement {
@@ -33,13 +33,25 @@ class TreeFlowWidget extends HTMLElement {
   }
 
   static get observedAttributes() {
-    return ['title', 'endpoint', 'tree-id', 'widget-icon', 'bot-icon', 'bot-image', 'placeholder', 'primary-color', 'secondary-color', 'position', 'z-index', 'file-upload', 'microphone', 'debug', 'max-file-size', 'response-delay', 'stt-enabled', 'stt-endpoint', 'start-event', 'enable-maximize'];
+    return ['title', 'subtitle', 'endpoint', 'tree-id', 'widget-icon', 'bot-icon', 'bot-image', 'placeholder', 'primary-color', 'secondary-color', 'position', 'z-index', 'file-upload', 'microphone', 'debug', 'max-file-size', 'response-delay', 'stt-enabled', 'stt-endpoint', 'start-event', 'enable-maximize', 'bot-sender-name', 'bot-avatar-icon', 'dark-mode', 'open-on-start', 'lang'];
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
     if (oldValue !== newValue) {
       this.config = this.getConfiguration();
+      if (name === 'dark-mode') {
+        const chatWindow = this.shadowRoot.getElementById('chatWindow');
+        if (chatWindow) {
+          if (this.config.darkMode) {
+            chatWindow.classList.add('dark-mode');
+          } else {
+            chatWindow.classList.remove('dark-mode');
+          }
+        }
+        return;
+      }
       this.render();
+      this.setupEventListeners();
     }
   }
 
@@ -47,6 +59,10 @@ class TreeFlowWidget extends HTMLElement {
     this.config = this.getConfiguration();
     this.render();
     this.setupEventListeners();
+
+    if (this.config.openOnStart && this.chatState === 'closed') {
+      this.open();
+    }
 
     // Send start event if configured and no messages yet
     if (this.config.startEvent && this.messages.length === 0) {
@@ -103,7 +119,13 @@ class TreeFlowWidget extends HTMLElement {
       sttEnabled: getBool('stt-enabled', 'sttEnabled', false),
       sttEndpoint: getVal('stt-endpoint', 'sttEndpoint', 'http://localhost:8000/stt'),
       startEvent: getVal('start-event', 'startEvent', null),
-      enableMaximize: getBool('enable-maximize', 'enableMaximize', true)
+      enableMaximize: getBool('enable-maximize', 'enableMaximize', true),
+      subtitle: getVal('subtitle', 'subtitle', ''),
+      botSenderName: getVal('bot-sender-name', 'botSenderName', null) || this.getAttribute('bot_sender_name'),
+      botAvatarIcon: getVal('bot-avatar-icon', 'botAvatarIcon', null) || this.getAttribute('bot_avatar_icon'),
+      darkMode: getBool('dark-mode', 'darkMode', false),
+      openOnStart: getBool('open-on-start', 'openOnStart', false),
+      lang: getVal('lang', 'lang', 'es')
     };
   }
 
@@ -122,25 +144,28 @@ class TreeFlowWidget extends HTMLElement {
         ${WIDGET_STYLES}
         
         :host {
-          --tfw-primary-color: ${this.config.primaryColor};
-          --tfw-secondary-color: ${this.config.secondaryColor};
-          --tfw-widget-z-index: ${this.config.zIndex};
+          ${this.getAttribute('primary-color') ? `--tfw-primary-color: ${this.config.primaryColor};` : ''}
+          ${this.getAttribute('secondary-color') ? `--tfw-secondary-color: ${this.config.secondaryColor};` : ''}
+          ${this.getAttribute('z-index') ? `--tfw-widget-z-index: ${this.config.zIndex};` : ''}
           ${positionStyles}
         }
       </style>
       
-      <button class="widget-button" id="toggleBtn">
-        ${(this.config.widgetIcon && this.config.widgetIcon !== 'cc-moon') ? `<img src="${this.config.widgetIcon}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : ICONS.LUNA}
+      <button class="widget-button" id="toggleBtn" aria-label="Abrir chat">
+        ${getIconHtml(this.config.widgetIcon, 28, 'currentColor')}
       </button>
 
-      <div class="chat-window ${this.chatState}" id="chatWindow">
+      <div class="chat-window ${this.chatState} ${this.config.darkMode ? 'dark-mode' : ''}" id="chatWindow">
         ${(this.config.widgetIcon && this.config.widgetIcon !== 'cc-moon') ? `<img src="${this.config.widgetIcon}" class="widget-icon-closed" alt="Widget Icon" onerror="this.classList.add('error')">` : ''}
         <span class="widget-icon-fallback">🌙</span>
         
         <div class="chat-header">
-          <div class="chat-title">
-            ${this.config.botImage ? `<img src="${this.config.botImage}" class="bot-image" alt="Bot">` : ''}
-            ${this.config.title}
+          <div class="chat-title-group">
+            <div class="chat-title">
+              ${this.config.botImage ? `<img src="${this.config.botImage}" class="bot-image" alt="Bot">` : getIconHtml(this.config.widgetIcon, 20, 'currentColor')}
+              ${this.config.title}
+            </div>
+            ${this.config.subtitle ? `<div class="chat-subtitle">${this.config.subtitle}</div>` : ''}
           </div>
           <div class="chat-controls">
             <button class="control-btn" id="minimizeBtn" title="Minimizar">${ICONS.MINIMIZE}</button>
@@ -538,6 +563,10 @@ class TreeFlowWidget extends HTMLElement {
     textarea.style.height = Math.min(textarea.scrollHeight, 100) + 'px';
   }
 
+  toggleChat() {
+    this.toggle();
+  }
+
   toggle() {
     this.chatState = this.chatState === 'closed' ? 'open' : 'closed';
     this.updateChatDisplay();
@@ -666,6 +695,36 @@ class TreeFlowWidget extends HTMLElement {
   // Updated addMessage to handle rich content
   addMessage(content, sender, suggestions = [], debugData = null) {
     const messagesContainer = this.shadowRoot.getElementById('messages');
+    
+    // Contenedor wrapper para agrupar cabecera (avatar + nombre) y burbuja
+    const wrapper = document.createElement('div');
+    wrapper.className = `message-wrapper ${sender}`;
+
+    // Cabecera del remitente con Avatar y Nombre
+    const header = document.createElement('div');
+    header.className = 'message-sender-header';
+
+    const avatar = document.createElement('div');
+    avatar.className = `message-avatar ${sender === 'user' ? 'user-avatar' : ''}`;
+
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'message-sender-name';
+
+    if (sender === 'user') {
+      avatar.innerHTML = getIconHtml('person', 14, 'currentColor');
+      nameSpan.textContent = 'Tú';
+      header.appendChild(nameSpan);
+      header.appendChild(avatar);
+    } else {
+      const effectiveIcon = this.config.botAvatarIcon || this.config.widgetIcon || 'cc-moon';
+      avatar.innerHTML = getIconHtml(effectiveIcon, 14, 'white');
+      nameSpan.textContent = this.config.botSenderName || this.config.title || 'TreeFlow Assistant';
+      header.appendChild(avatar);
+      header.appendChild(nameSpan);
+    }
+
+    wrapper.appendChild(header);
+
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${sender}`;
 
@@ -721,7 +780,8 @@ class TreeFlowWidget extends HTMLElement {
       messageDiv.appendChild(debugBtn);
     }
 
-    messagesContainer.appendChild(messageDiv);
+    wrapper.appendChild(messageDiv);
+    messagesContainer.appendChild(wrapper);
 
     if (suggestions && suggestions.length > 0) {
       const suggestionsDiv = document.createElement('div');
