@@ -160,13 +160,13 @@ class TreeFlowWidget extends HTMLElement {
     }
   }
 
+  // Cada carga del navegador es una conversación nueva: no se persiste en
+  // localStorage a propósito. Si se guardara, recargar la página reutilizaría
+  // la misma sesión en el backend (la conversación seguiría donde se quedó,
+  // aunque visualmente el saludo de inicio se repita) en vez de arrancar
+  // limpia desde el principio.
   getOrCreateSessionId() {
-    let sessionId = localStorage.getItem('treeflow_session_id');
-    if (!sessionId) {
-      sessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-      localStorage.setItem('treeflow_session_id', sessionId);
-    }
-    return sessionId;
+    return 'session-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
   }
 
   getConfiguration() {
