@@ -2,6 +2,22 @@ import { WIDGET_STYLES } from './styles.js';
 import { ICONS, getIconHtml } from './icons.js';
 import { renderRichMessage } from './renderers.js';
 
+// Config remota (GET /widget-config/{tree-id}) usa los mismos nombres que el
+// panel del dashboard (useTreeflowWebModal.ts); el widget internamente usa
+// nombres distintos para algunos campos históricos. Todo lo que no aparece
+// aquí pasa igual (mismo nombre en ambos lados).
+const REMOTE_CONFIG_KEY_MAP = {
+  widgetTitle: 'title',
+  widgetSubtitle: 'subtitle',
+  enableFileUpload: 'fileUpload',
+  enableMicrophone: 'microphone',
+  enableResponseDelay: 'responseDelay',
+  responseDelayMs: 'responseDelaySeconds',
+  enableDebugMode: 'debug',
+  enableDarkMode: 'darkMode',
+  defaultLanguage: 'lang',
+};
+
 class TreeFlowWidget extends HTMLElement {
   constructor() {
     super();
@@ -10,6 +26,12 @@ class TreeFlowWidget extends HTMLElement {
     this.chatState = 'closed'; // closed, open, maximized
     this.messages = [];
     this.config = {};
+    // Config obtenida de GET /widget-config/{tree-id} antes del primer
+    // render (colores, tamaños, textos, startTrigger). `remoteConfigReady`
+    // evita pintar con config a medias si un atributo cambia mientras el
+    // fetch inicial sigue en vuelo.
+    this.remoteConfig = {};
+    this.remoteConfigReady = false;
     this.isRecording = false;
     this.mediaRecorder = null;
     this.audioChunks = [];
@@ -37,6 +59,10 @@ class TreeFlowWidget extends HTMLElement {
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
+    // Si el elemento ya tenía atributos al hacer upgrade, este callback puede
+    // dispararse antes que connectedCallback/el fetch de config remota — no
+    // pintar con config a medias, connectedCallback se encarga del primer render.
+    if (!this.remoteConfigReady) return;
     if (oldValue !== newValue) {
       this.config = this.getConfiguration();
       if (name === 'dark-mode') {
@@ -55,8 +81,21 @@ class TreeFlowWidget extends HTMLElement {
     }
   }
 
-  connectedCallback() {
+  async connectedCallback() {
+    // Config desde atributos primero (nunca deja al widget sin nada si el
+    // fetch falla), luego se completa/sobreescribe con la config remota
+    // antes de pintar por primera vez.
     this.config = this.getConfiguration();
+    await this.loadRemoteConfig();
+    this.remoteConfigReady = true;
+    this.config = this.getConfiguration();
+
+    // Kill-switch: si la integración está desactivada en el dashboard, el
+    // widget no se pinta aunque el snippet siga en el sitio del cliente.
+    if (this.config.enabled === false) {
+      return;
+    }
+
     this.render();
     this.setupEventListeners();
 
@@ -64,12 +103,60 @@ class TreeFlowWidget extends HTMLElement {
       this.open();
     }
 
-    // Send start event if configured and no messages yet
-    if (this.config.startEvent && this.messages.length === 0) {
+    if (this.config.startTrigger && this.config.startTrigger.name && this.messages.length === 0) {
+      setTimeout(() => {
+        this.sendStartTrigger(this.config.startTrigger);
+      }, 500);
+    } else if (this.config.startEvent && this.messages.length === 0) {
       // Small delay to ensure everything is ready
       setTimeout(() => {
         this.sendStartEvent(this.config.startEvent);
       }, 500);
+    }
+  }
+
+  normalizeRemoteConfig(raw) {
+    if (!raw || typeof raw !== 'object') return {};
+    const normalized = {};
+    Object.keys(raw).forEach((key) => {
+      const mappedKey = REMOTE_CONFIG_KEY_MAP[key] || key;
+      normalized[mappedKey] = raw[key];
+    });
+    // 'same' o vacío significa "usa el mismo ícono que el widget" (resuelto
+    // antes en el dashboard; ahora la config remota trae el valor crudo).
+    if (!normalized.botAvatarIcon || normalized.botAvatarIcon === 'same') {
+      normalized.botAvatarIcon = normalized.widgetIcon;
+    }
+    return normalized;
+  }
+
+  async loadRemoteConfig() {
+    const treeId = this.getAttribute('tree-id') || this.getAttribute('tree_id');
+    const endpointAttr = this.getAttribute('endpoint');
+    if (!treeId || !endpointAttr) return;
+
+    let origin;
+    try {
+      origin = new URL(endpointAttr, window.location.href).origin;
+    } catch (e) {
+      return;
+    }
+
+    const hasAbort = typeof AbortController !== 'undefined';
+    const controller = hasAbort ? new AbortController() : null;
+    const timeoutId = controller ? setTimeout(() => controller.abort(), 2500) : null;
+
+    try {
+      const res = await fetch(`${origin}/widget-config/${treeId}`, controller ? { signal: controller.signal } : {});
+      if (res.ok) {
+        const data = await res.json();
+        this.remoteConfig = this.normalizeRemoteConfig(data);
+      }
+    } catch (e) {
+      // No bloquea el widget: sin config remota, sigue con atributos/defaults.
+      console.warn('[TreeFlow] No se pudo cargar la configuración remota del widget', e);
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
     }
   }
 
@@ -84,10 +171,13 @@ class TreeFlowWidget extends HTMLElement {
 
   getConfiguration() {
     const globalConfig = window.treeflowConfig || {};
+    const remoteConfig = this.remoteConfig || {};
 
-    // Helper to get attribute or global config
+    // Helper to get attribute, remote config (GET /widget-config/{tree-id})
+    // or global config, in that order. El atributo explícito siempre gana
+    // (snippets viejos con estilo horneado siguen funcionando igual).
     const getVal = (attr, key, def) => {
-      return this.getAttribute(attr) || globalConfig[key] || def;
+      return this.getAttribute(attr) || remoteConfig[key] || globalConfig[key] || def;
     };
 
     // Helper for boolean attributes
@@ -95,6 +185,7 @@ class TreeFlowWidget extends HTMLElement {
       const attrVal = this.getAttribute(attr);
       if (attrVal === 'true' || attrVal === '') return true;
       if (attrVal === 'false') return false;
+      if (remoteConfig[key] !== undefined) return !!remoteConfig[key];
       return globalConfig[key] !== undefined ? globalConfig[key] : def;
     };
 
@@ -125,7 +216,37 @@ class TreeFlowWidget extends HTMLElement {
       botAvatarIcon: getVal('bot-avatar-icon', 'botAvatarIcon', null) || this.getAttribute('bot_avatar_icon'),
       darkMode: getBool('dark-mode', 'darkMode', false),
       openOnStart: getBool('open-on-start', 'openOnStart', false),
-      lang: getVal('lang', 'lang', 'es')
+      lang: getVal('lang', 'lang', 'es'),
+
+      // Kill-switch de la integración ("Activa" en el dashboard). Sin
+      // atributo HTML equivalente — solo config remota.
+      enabled: remoteConfig.enabled !== undefined ? remoteConfig.enabled : true,
+      // Intención/evento a disparar al abrir el chat ("Ejecutar intención al
+      // inicio"), con la hoja/rama de anclaje para que sus tools corran.
+      startTrigger: remoteConfig.startTrigger || null,
+
+      // Paleta de tamaños/colores: hoy solo llega por config remota (antes
+      // venía horneada como CSS en el snippet). Si no hay valor, `render()`
+      // simplemente no emite la variable y el fallback de styles.js aplica.
+      userMessageBg: remoteConfig.userMessageBg,
+      widgetButtonBg: remoteConfig.widgetButtonBg,
+      widgetWidth: remoteConfig.widgetWidth,
+      widgetHeight: remoteConfig.widgetHeight,
+      borderRadius: remoteConfig.borderRadius,
+      fontSize: remoteConfig.fontSize,
+      fontSizeMessage: remoteConfig.fontSizeMessage,
+      launcherButtonSize: remoteConfig.launcherButtonSize,
+      launcherIconSize: remoteConfig.launcherIconSize,
+      headerIconSize: remoteConfig.headerIconSize,
+      messagePadding: remoteConfig.messagePadding,
+      chatBodyBg: remoteConfig.chatBodyBg,
+      botMessageBg: remoteConfig.botMessageBg,
+      botMessageTextColor: remoteConfig.botMessageTextColor,
+      userMessageTextColor: remoteConfig.userMessageTextColor,
+      headerTitleColor: remoteConfig.headerTitleColor,
+      headerButtonsColor: remoteConfig.headerButtonsColor,
+      botAvatarBg: remoteConfig.botAvatarBg,
+      botAvatarSize: remoteConfig.botAvatarSize,
     };
   }
 
@@ -139,14 +260,46 @@ class TreeFlowWidget extends HTMLElement {
       `;
     }
 
+    // Emite la variable solo si hay un valor (de atributo, config remota o
+    // config global) — si no, el fallback de var(--x, default) en styles.js
+    // aplica igual que antes. `unit` agrega 'px' a los valores numéricos que
+    // el dashboard guarda como número plano (ancho, alto, tamaños...).
+    const cssVar = (name, value, unit = '') =>
+      (value !== undefined && value !== null && value !== '') ? `${name}: ${value}${unit};` : '';
+
+    const themeVars = [
+      cssVar('--tfw-primary-color', this.config.primaryColor),
+      cssVar('--tfw-header-bg', this.config.primaryColor),
+      cssVar('--tfw-button-bg', this.config.primaryColor),
+      cssVar('--tfw-secondary-color', this.config.secondaryColor),
+      cssVar('--tfw-widget-z-index', this.config.zIndex),
+      cssVar('--tfw-user-message-bg', this.config.userMessageBg),
+      cssVar('--tfw-widget-button-bg', this.config.widgetButtonBg),
+      cssVar('--tfw-font-size', this.config.fontSize),
+      cssVar('--tfw-font-size-message', this.config.fontSizeMessage),
+      cssVar('--tfw-widget-width', this.config.widgetWidth, 'px'),
+      cssVar('--tfw-widget-height', this.config.widgetHeight, 'px'),
+      cssVar('--tfw-border-radius', this.config.borderRadius, 'px'),
+      cssVar('--tfw-launcher-size', this.config.launcherButtonSize, 'px'),
+      cssVar('--tfw-launcher-icon-size', this.config.launcherIconSize, 'px'),
+      cssVar('--tfw-header-icon-size', this.config.headerIconSize, 'px'),
+      cssVar('--tfw-message-padding', this.config.messagePadding, 'px'),
+      cssVar('--tfw-chat-body-bg', this.config.chatBodyBg),
+      cssVar('--tfw-bot-message-bg', this.config.botMessageBg),
+      cssVar('--tfw-bot-message-text-color', this.config.botMessageTextColor),
+      cssVar('--tfw-user-message-text-color', this.config.userMessageTextColor),
+      cssVar('--tfw-header-title-color', this.config.headerTitleColor),
+      cssVar('--tfw-header-buttons-color', this.config.headerButtonsColor),
+      cssVar('--tfw-bot-avatar-bg', this.config.botAvatarBg || this.config.primaryColor),
+      cssVar('--tfw-bot-avatar-size', this.config.botAvatarSize, 'px'),
+    ].join('\n          ');
+
     this.shadowRoot.innerHTML = `
       <style>
         ${WIDGET_STYLES}
-        
+
         :host {
-          ${this.getAttribute('primary-color') ? `--tfw-primary-color: ${this.config.primaryColor};` : ''}
-          ${this.getAttribute('secondary-color') ? `--tfw-secondary-color: ${this.config.secondaryColor};` : ''}
-          ${this.getAttribute('z-index') ? `--tfw-widget-z-index: ${this.config.zIndex};` : ''}
+          ${themeVars}
           ${positionStyles}
         }
       </style>
@@ -1473,6 +1626,80 @@ class TreeFlowWidget extends HTMLElement {
       session_id: this.sessionId,
       source: 'web'
     };
+
+    if (this.config.debug) {
+      this.pendingRequest = JSON.parse(JSON.stringify(requestPayload));
+    }
+
+    const response = await fetch(this.config.endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestPayload)
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (this.config.debug) {
+      this.pendingResponse = JSON.parse(JSON.stringify(data));
+    }
+
+    return {
+      message: data.response?.value || data.message || 'Sin respuesta',
+      suggestions: data.suggestions || data.response?.suggestions || []
+    };
+  }
+
+  // "Ejecutar intención al inicio": dispara la intención/evento anclado a un
+  // trigger_context guardado en el dashboard (`type: 'trigger'`, distinto del
+  // `type: 'event'` de sendStartEvent/callBackendEvent). Reenvía
+  // current_leaf_id/branch_id cuando el trigger trae su hoja/rama de anclaje,
+  // para que la sesión arranque ahí y las tools de ese contexto corran.
+  async sendStartTrigger(trigger) {
+    if (!trigger || !trigger.name) return;
+
+    try {
+      const response = await this.callBackendTrigger(trigger);
+      if (response.message) {
+        const debugData = this.config.debug ? {
+          request: this.pendingRequest,
+          response: this.pendingResponse
+        } : null;
+
+        this.addMessage(response.message, 'bot', response.suggestions, debugData);
+
+        this.pendingRequest = null;
+        this.pendingResponse = null;
+      }
+    } catch (error) {
+      console.error('Error sending start trigger:', trigger, error);
+    }
+  }
+
+  async callBackendTrigger(trigger) {
+    this.config = this.getConfiguration();
+
+    if (!this.config.endpoint) {
+      throw new Error('No endpoint configured');
+    }
+
+    const requestPayload = {
+      type: 'trigger',
+      value: { triggerType: trigger.type || 'intent', name: trigger.name },
+      tree_id: this.config.treeId,
+      session_id: this.sessionId,
+      source: 'web'
+    };
+    if (trigger.leafId) {
+      requestPayload.current_leaf_id = trigger.leafId;
+    } else if (trigger.branchId) {
+      requestPayload.branch_id = trigger.branchId;
+    }
 
     if (this.config.debug) {
       this.pendingRequest = JSON.parse(JSON.stringify(requestPayload));
