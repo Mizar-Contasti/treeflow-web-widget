@@ -41,6 +41,7 @@ export const WIDGET_STYLES = `
   .widget-button:hover {
     transform: scale(1.1);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    filter: brightness(1.15);
   }
   
   .chat-window {
@@ -328,8 +329,8 @@ export const WIDGET_STYLES = `
     background: white;
   }
   
-  .input-btn, .send-btn {
-    background: transparent;
+  .input-btn {
+    background: var(--tfw-primary-color, #2563eb);
     border: none;
     width: 36px;
     height: 36px;
@@ -338,29 +339,43 @@ export const WIDGET_STYLES = `
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #6b7280;
+    color: #ffffff;
     transition: all 0.2s;
     flex-shrink: 0;
   }
   
   .input-btn:hover {
-    background: #f3f4f6;
-    color: var(--tfw-primary-color);
+    filter: brightness(1.15);
+    transform: scale(1.05);
+  }
+
+  .input-btn svg {
+    color: #ffffff;
   }
   
   .send-btn {
-    background: var(--tfw-primary-color);
+    background: var(--tfw-primary-color, #2563eb);
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: white;
+    transition: all 0.2s;
+    flex-shrink: 0;
   }
   
   .send-btn:hover {
-    background: var(--tfw-button-hover-bg);
+    filter: brightness(1.15);
     transform: scale(1.05);
   }
   
   .send-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+    opacity: 1;
+    cursor: pointer;
     transform: none;
   }
   
