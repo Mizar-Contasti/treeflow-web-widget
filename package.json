@@ -1,6 +1,6 @@
 {
   "name": "treeflow-web-widget",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Widget de chat embebible para TreeFlow - Integración súper simple",
   "main": "dist/treeflow-widget.js",
   "files": [
