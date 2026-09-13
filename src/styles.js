@@ -349,8 +349,13 @@ export const WIDGET_STYLES = `
     transform: scale(1.05);
   }
 
+  /* El icono toma el color del botón. Estaba clavado en blanco, y como más
+     abajo ("Input Buttons Harmonization") el botón pasó a fondo transparente,
+     quedaba blanco sobre blanco: se veía el círculo con su borde y ningún
+     icono dentro. La regla del svg gana por especificidad a la del botón, así
+     que el color del botón no llegaba a aplicarse nunca. */
   .input-btn svg {
-    color: #ffffff;
+    color: inherit;
   }
   
   .send-btn {
