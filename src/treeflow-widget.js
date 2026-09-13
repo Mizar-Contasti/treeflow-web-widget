@@ -26,6 +26,9 @@ class TreeFlowWidget extends HTMLElement {
     this.chatState = 'closed'; // closed, open, maximized
     this.messages = [];
     this.config = {};
+    // Contexto que viaja en cada petición. Arranca con lo definido en el panel
+    // y la página lo amplía con `injectContext(...)`.
+    this.injectedContext = {};
     // Config obtenida de GET /widget-config/{tree-id} antes del primer
     // render (colores, tamaños, textos, startTrigger). `remoteConfigReady`
     // evita pintar con config a medias si un atributo cambia mientras el
@@ -224,6 +227,13 @@ class TreeFlowWidget extends HTMLElement {
       // Intención/evento a disparar al abrir el chat ("Ejecutar intención al
       // inicio"), con la hoja/rama de anclaje para que sus tools corran.
       startTrigger: remoteConfig.startTrigger || null,
+
+      // Contexto por defecto: variables que viajan en cada petición y que el
+      // motor puede interpolar en los mensajes. Se definen en el panel y la
+      // página puede añadir o pisar las suyas con `widget.injectContext(...)`.
+      injectedContext: (remoteConfig.injectedContext
+                        && typeof remoteConfig.injectedContext === 'object')
+        ? remoteConfig.injectedContext : {},
 
       // Paleta de tamaños/colores: hoy solo llega por config remota (antes
       // venía horneada como CSS en el snippet). Si no hay valor, `render()`
@@ -1583,6 +1593,7 @@ class TreeFlowWidget extends HTMLElement {
       is_start_event: isStartEvent,
       source: 'web'
     };
+    this.aplicarContexto(requestPayload);
 
     if (sttInfo) {
       requestPayload.stt_info = sttInfo;
@@ -1685,6 +1696,49 @@ class TreeFlowWidget extends HTMLElement {
     }
   }
 
+  /** Mete en la petición el idioma y el contexto, si hay algo que mandar. */
+  aplicarContexto(payload) {
+    const idioma = this.config.lang;
+    if (idioma) {
+      payload.language = idioma;
+    }
+    const contexto = { ...(this.config.injectedContext || {}), ...this.injectedContext };
+    if (Object.keys(contexto).length > 0) {
+      payload.injected_context = contexto;
+    }
+    return payload;
+  }
+
+  /** Variables de contexto desde la página que embebe el widget.
+   *
+   *  Esta API ya estaba documentada en el panel de Treeflow, con su ejemplo
+   *  para copiar y pegar, pero no existía: llamarla reventaba con
+   *  "injectContext is not a function". Se acumulan entre llamadas y pisan a
+   *  las definidas por defecto en el panel.
+   */
+  injectContext(contexto) {
+    if (!contexto || typeof contexto !== 'object') return this.injectedContext;
+    this.injectedContext = { ...this.injectedContext, ...contexto };
+    return this.injectedContext;
+  }
+
+  /** Borra el contexto inyectado desde la página; no toca el del panel. */
+  clearContext() {
+    this.injectedContext = {};
+  }
+
+  /** Manda un mensaje como si lo hubiera escrito el visitante.
+   *
+   *  También estaba documentada en el panel y tampoco existía.
+   */
+  sendUserMessage(texto) {
+    if (!texto || !String(texto).trim()) return;
+    if (this.chatState === 'closed') {
+      this.open();
+    }
+    return this.sendMessage(String(texto));
+  }
+
   async callBackendTrigger(trigger) {
     this.config = this.getConfiguration();
 
@@ -1704,6 +1758,7 @@ class TreeFlowWidget extends HTMLElement {
     } else if (trigger.branchId) {
       requestPayload.branch_id = trigger.branchId;
     }
+    this.aplicarContexto(requestPayload);
 
     if (this.config.debug) {
       this.pendingRequest = JSON.parse(JSON.stringify(requestPayload));
