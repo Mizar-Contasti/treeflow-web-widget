@@ -12,6 +12,20 @@ function esc(valor) {
     .replace(/'/g, '&#39;');
 }
 
+// La misma sintaxis que entiende el widget de la app (utils/textFormatting):
+// **negrita**, *cursiva*, __subrayado__. Sin esto, el bot escribía
+// "**CECyTE-TBC Chiapas**" con los asteriscos a la vista, mientras que en la
+// app el mismo mensaje salía en negrita.
+//
+// Se escapa ANTES de aplicar los marcadores, así que lo único que llega a ser
+// HTML son las etiquetas que pone esta función; el texto del bot nunca.
+export function conFormato(texto) {
+  return esc(texto)
+    .replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*([^*]+?)\*/g, '<em>$1</em>')
+    .replace(/__([^_]+?)__/g, '<u>$1</u>');
+}
+
 export function renderRichMessage(block) {
   if (!block) return '';
 
@@ -82,7 +96,7 @@ function renderParagraph(block) {
   const items = block.items || [block];
   return items.map(item => `
     <div class="rich-paragraph">
-      ${item.text || item.content || ''}
+      ${conFormato(item.text || item.content || '')}
     </div>
   `).join('');
 }
@@ -378,7 +392,7 @@ function renderAction(action, style = 'button') {
   // escribiéndole al bot la URL entera en vez de abrirla.
   if (action.type === 'link') {
     return `
-    <a class="${className}" href="${esc(payload)}" target="_blank" rel="noopener">
+    <a class="${className} enlace" href="${esc(payload)}" target="_blank" rel="noopener">
       ${iconHtml} ${esc(label)}
     </a>
   `;

@@ -1,6 +1,6 @@
 import { WIDGET_STYLES } from './styles.js';
 import { ICONS, getIconHtml } from './icons.js';
-import { renderRichMessage } from './renderers.js';
+import { renderRichMessage, conFormato } from './renderers.js';
 
 // Config remota (GET /widget-config/{tree-id}) usa los mismos nombres que el
 // panel del dashboard (useTreeflowWebModal.ts); el widget internamente usa
@@ -909,9 +909,13 @@ class TreeFlowWidget extends HTMLElement {
     if (isRich) {
       messageDiv.innerHTML = renderRichMessage(richContent);
     } else {
-      // Plain text
+      // Texto plano, con los mismos marcadores que entiende el widget de la app:
+      // **negrita**, *cursiva*, __subrayado__. Antes se metía con `textContent`,
+      // así que un mensaje con formato enseñaba los asteriscos tal cual.
+      // `conFormato` escapa el texto antes de aplicarlos, así que usar innerHTML
+      // aquí no abre la puerta a inyectar nada.
       const messageContent = document.createElement('span');
-      messageContent.textContent = content;
+      messageContent.innerHTML = conFormato(content);
       messageDiv.appendChild(messageContent);
     }
 

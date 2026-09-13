@@ -1,10 +1,12 @@
 {
   "name": "treeflow-web-widget",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Widget de chat embebible para TreeFlow - Integración súper simple",
   "main": "dist/treeflow-widget.js",
   "files": [
-    "dist/treeflow-widget.js"
+    "dist/",
+    "src/",
+    "README.md"
   ],
   "keywords": [
     "chatbot",
@@ -22,18 +24,12 @@
   },
   "author": "Mizar-Contasti",
   "license": "MIT",
-  "homepage": "https://github.com/Mizar-Contasti/treeflow-web-widget",
-  "files": [
-    "dist/",
-    "src/",
-    "README.md"
-  ],
+  "homepage": "https://github.com/treeflow/web-widget#readme",
   "repository": {
     "type": "git",
     "url": "https://github.com/treeflow/web-widget.git"
   },
   "bugs": {
     "url": "https://github.com/treeflow/web-widget/issues"
-  },
-  "homepage": "https://github.com/treeflow/web-widget#readme"
+  }
 }

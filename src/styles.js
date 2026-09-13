@@ -854,31 +854,60 @@ export const WIDGET_STYLES = `
     padding: 0; /* Ensure no extra padding */
   }
 
-  /* Shared Button Styles */
+  /* Botones de acción.
+
+     Se parecen a los del widget de la app a propósito: el mismo mensaje se ve
+     en los dos sitios y antes no había forma de reconocerlo. Allí son botones
+     neutros, en minúsculas y alineados a la izquierda; aquí salían en
+     MAYÚSCULAS, centrados y con borde de color. */
   .action-btn, .share-location-btn {
     width: 100%;
     padding: 8px 16px;
-    background: white;
-    border: 1px solid var(--tfw-primary-color);
-    color: var(--tfw-primary-color);
-    border-radius: 4px;
+    background: #eef1f5;
+    border: 1px solid transparent;
+    color: #1f2937;
+    border-radius: 8px;
     cursor: pointer;
-    font-weight: 600;
+    font-weight: 500;
     font-size: 13px;
-    text-transform: uppercase;
+    font-family: inherit;
+    text-transform: none;
     transition: all 0.2s;
-    text-align: center;
+    text-align: left;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 8px;
     margin-top: 4px;
     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    text-decoration: none;
   }
-  
+
+  .action-btn:hover, .share-location-btn:hover {
+    background: #e2e8f0;
+  }
+
+  /* Los enlaces van perfilados, como en la app: llevan a otro sitio y conviene
+     que no se confundan con los que siguen la conversación aquí dentro. */
+  .action-btn.primary, .action-btn.enlace {
+    background: white;
+    border-color: var(--tfw-primary-color);
+    color: var(--tfw-primary-color);
+    font-weight: 600;
+  }
+
+  .action-btn.primary:hover, .action-btn.enlace:hover {
+    background: rgba(0,0,0,0.03);
+  }
+
+  /* Este bloque se había quedado sin selector: una declaración suelta y una
+     llave de cierre de más, que rompían el parseo de lo que venía detrás. */
+  .action-icon {
+    display: flex;
+    align-items: center;
     justify-content: center;
   }
-  
+
   .action-icon svg {
     width: 18px;
     height: 18px;
