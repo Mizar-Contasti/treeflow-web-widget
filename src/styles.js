@@ -726,6 +726,124 @@ export const WIDGET_STYLES = `
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
 
+  /* Acordeón */
+  .rich-accordion {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .rich-accordion-item {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: white;
+    overflow: hidden;
+  }
+
+  .rich-accordion-title {
+    padding: 10px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .rich-accordion-title::-webkit-details-marker { display: none; }
+
+  .rich-accordion-title::after {
+    content: '⌄';
+    font-size: 16px;
+    line-height: 1;
+    color: var(--tfw-primary-color);
+    transition: transform 0.2s;
+  }
+
+  .rich-accordion-item[open] .rich-accordion-title::after {
+    transform: rotate(180deg);
+  }
+
+  .rich-accordion-content {
+    padding: 0 12px 10px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #6b7280;
+    white-space: pre-wrap;
+  }
+
+  /* Desplegable */
+  .rich-dropdown {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: white;
+    padding: 10px 12px;
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .rich-dropdown-label {
+    font-size: 12px;
+    color: #6b7280;
+  }
+
+  .rich-dropdown-select {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 13px;
+    font-family: inherit;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+  }
+
+  .rich-dropdown-select:focus {
+    outline: none;
+    border-color: var(--tfw-primary-color);
+  }
+
+  .rich-dropdown-send {
+    align-self: flex-start;
+  }
+
+  /* Divisor */
+  .rich-divider {
+    border: none;
+    border-top: 1px solid #e5e7eb;
+    margin: 12px 0;
+  }
+
+  .rich-divider-dashed { border-top-style: dashed; }
+  .rich-divider-dotted { border-top-style: dotted; }
+
+  .rich-divider-con-texto {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 12px 0;
+    font-size: 12px;
+    color: #9ca3af;
+  }
+
+  .rich-divider-con-texto::before,
+  .rich-divider-con-texto::after {
+    content: '';
+    flex: 1;
+    border-top: 1px solid #e5e7eb;
+  }
+
+  .rich-divider-con-texto.rich-divider-dashed::before,
+  .rich-divider-con-texto.rich-divider-dashed::after { border-top-style: dashed; }
+  .rich-divider-con-texto.rich-divider-dotted::before,
+  .rich-divider-con-texto.rich-divider-dotted::after { border-top-style: dotted; }
+
   /* Paragraph */
   .rich-paragraph {
     font-size: 14px;

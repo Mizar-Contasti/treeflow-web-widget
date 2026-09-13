@@ -1,5 +1,17 @@
 import { ICONS } from './icons.js';
 
+// Las etiquetas y los payloads los escribe quien construye el bot, no un
+// visitante, pero acaban dentro de atributos HTML y de un onclick. Escaparlos
+// cuesta nada y evita que un apóstrofo en "¿Qué día?" rompa el botón entero.
+function esc(valor) {
+  return String(valor == null ? '' : valor)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 export function renderRichMessage(block) {
   if (!block) return '';
 
@@ -42,10 +54,21 @@ export function renderRichMessage(block) {
       return renderFile(block);
     case 'image':
       return renderImage(block);
+    // La plataforma emite 'buttons' en plural; 'button' y 'options' se dejan por
+    // los payloads viejos. Sin el plural, el bloque más usado de todos caía en el
+    // default de abajo y no se pintaba nada.
+    case 'buttons':
+      return renderButtons(block);
     case 'button': // Standalone buttons or options
     case 'options':
     case 'quick_replies':
       return renderQuickReplies(block);
+    case 'accordion':
+      return renderAccordion(block);
+    case 'dropdown':
+      return renderDropdown(block);
+    case 'divider':
+      return renderDivider(block);
     case 'paragraph':
     case 'text':
       return renderParagraph(block);
@@ -180,21 +203,22 @@ function renderLocation(block) {
   const items = block.items || [block];
 
   return items.map(item => {
-    // If we have coordinates, show map preview (static image or placeholder)
-    // For now, we'll use a placeholder structure that can be enhanced
-    if (item.latitude && item.longitude) {
-      const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${item.latitude},${item.longitude}&zoom=15&size=400x150&markers=color:red%7C${item.latitude},${item.longitude}&key=YOUR_API_KEY`; // Placeholder key
-      // Since we might not have a key, let's use a generic map icon/placeholder if image fails
-
+    // La UI escribe `lat`/`long` (ver frontend/src/types/rich-messages.ts); el
+    // widget sólo miraba `latitude`/`longitude`, así que toda ubicación creada
+    // desde el panel caía al botón de "compartir mi ubicación" y nunca salía el
+    // mapa. Se aceptan los dos nombres.
+    const lat = item.lat != null ? item.lat : item.latitude;
+    const lon = item.long != null ? item.long : item.longitude;
+    if (lat != null && lon != null) {
       return `
         <div class="rich-location">
           <div class="location-map">
              ${ICONS.MAP}
           </div>
           <div class="location-info">
-            <div class="location-name">${item.title || 'Ubicación'}</div>
-            <div class="location-address">${item.address || `${item.latitude}, ${item.longitude}`}</div>
-            <a href="https://www.google.com/maps/search/?api=1&query=${item.latitude},${item.longitude}" target="_blank" class="action-btn primary">
+            <div class="location-name">${esc(item.title || 'Ubicación')}</div>
+            <div class="location-address">${esc(item.address || `${lat}, ${lon}`)}</div>
+            <a href="${esc(item.mapUrl || `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`)}" target="_blank" rel="noopener" class="action-btn primary">
               ${ICONS.LOCATION_ON} Ver en Mapas
             </a>
           </div>
@@ -225,10 +249,10 @@ function renderFile(block) {
         ${ICONS.INSERT_DRIVE_FILE}
       </div>
       <div class="file-info">
-        <div class="file-name">${item.title || 'Archivo adjunto'}</div>
-        ${item.size ? `<div class="file-size">${item.size}</div>` : ''}
+        <div class="file-name">${esc(item.filename || item.name || item.title || 'Archivo adjunto')}</div>
+        ${item.size ? `<div class="file-size">${esc(item.size)}</div>` : ''}
       </div>
-      <button class="file-download-btn" onclick="this.getRootNode().host.handleFileDownload('${item.url}', '${item.title || 'archivo'}')" title="Descargar">
+      <button class="file-download-btn" onclick="this.getRootNode().host.handleFileDownload('${esc(item.url)}', '${esc(item.filename || item.name || item.title || 'archivo')}')" title="Descargar">
         ${ICONS.DOWNLOAD}
       </button>
     </div>
@@ -242,8 +266,8 @@ function renderImage(block) {
     const finalUrl = item.url || 'https://picsum.photos/400/200';
     return `
     <div class="rich-card">
-      <img src="${finalUrl}" class="rich-image-standalone" alt="${item.title || 'Image'}">
-      ${item.title ? `<div class="rich-card-content"><div class="rich-card-text">${item.title}</div></div>` : ''}
+      <img src="${esc(finalUrl)}" class="rich-image-standalone" alt="${esc(item.alt || item.title || '')}">
+      ${item.title ? `<div class="rich-card-content"><div class="rich-card-text">${esc(item.title)}</div></div>` : ''}
     </div>
     `;
   }).join('');
@@ -261,6 +285,65 @@ function renderButtons(block) {
   `;
 }
 
+function renderAccordion(block) {
+  const items = block.items || [];
+  if (items.length === 0) return '';
+
+  // <details> nativo: se pliega y despliega sin una línea de JavaScript, y
+  // funciona aunque el script del widget falle a medias.
+  return `
+    <div class="rich-accordion">
+      ${items.map(item => `
+        <details class="rich-accordion-item">
+          <summary class="rich-accordion-title">${esc(item.title || '')}</summary>
+          <div class="rich-accordion-content">${esc(item.content || '')}</div>
+        </details>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderDropdown(block) {
+  const items = block.items || block.options || [];
+  if (items.length === 0) return '';
+
+  const placeholder = block.placeholder || 'Selecciona una opción';
+  const buttonLabel = block.buttonLabel || 'Enviar';
+
+  // El botón lee el <select> hermano. Así no hace falta añadirle métodos al
+  // custom element ni registrar listeners sobre HTML que se inyecta como texto.
+  return `
+    <div class="rich-dropdown">
+      <div class="rich-dropdown-label">${esc(placeholder)}</div>
+      <select class="rich-dropdown-select">
+        <option value="" disabled selected>${esc(placeholder)}</option>
+        ${items.map(item => `
+          <option value="${esc(item.value != null ? item.value : item.label)}">${esc(item.label || item.value || '')}</option>
+        `).join('')}
+      </select>
+      <button class="action-btn rich-dropdown-send"
+              onclick="var s=this.parentNode.querySelector('.rich-dropdown-select'); if(s&amp;&amp;s.value){this.getRootNode().host.sendMessage(s.value);}">
+        ${esc(buttonLabel)}
+      </button>
+    </div>
+  `;
+}
+
+function renderDivider(block) {
+  const estilo = ['solid', 'dashed', 'dotted'].includes(block.style)
+    ? block.style : 'solid';
+  const etiqueta = block.label || (Array.isArray(block.items) ? block.items[0] : null);
+
+  if (etiqueta) {
+    return `
+      <div class="rich-divider-con-texto rich-divider-${estilo}">
+        <span>${esc(etiqueta)}</span>
+      </div>
+    `;
+  }
+  return `<hr class="rich-divider rich-divider-${estilo}">`;
+}
+
 function renderQuickReplies(block) {
   const items = block.items || block.options || block.quick_replies || [];
   if (items.length === 0) return '';
@@ -273,18 +356,16 @@ function renderQuickReplies(block) {
 }
 
 function renderAction(action, style = 'button') {
-  // Determine style based on action type or properties
-  // For now, we render them all as buttons that send a message
   const label = action.label || action.text || action.title;
   const payload = action.payload || action.value || label;
 
   let iconHtml = '';
   if (action.image || action.iconUrl) {
-    iconHtml = `<img src="${action.image || action.iconUrl}" class="action-icon-img" alt="" />`;
+    iconHtml = `<img src="${esc(action.image || action.iconUrl)}" class="action-icon-img" alt="" />`;
   } else if (action.icon) {
     // Check if icon is a URL
     if (action.icon.startsWith('http') || action.icon.startsWith('data:')) {
-      iconHtml = `<img src="${action.icon}" class="action-icon-img" alt="" />`;
+      iconHtml = `<img src="${esc(action.icon)}" class="action-icon-img" alt="" />`;
     } else {
       iconHtml = `<span class="action-icon">${ICONS[action.icon] || ''}</span>`;
     }
@@ -292,9 +373,20 @@ function renderAction(action, style = 'button') {
 
   const className = style === 'chip' ? 'suggestion-chip' : 'action-btn';
 
+  // Una acción de tipo 'link' lleva una URL en el payload. Se ignoraba el tipo y
+  // todo se mandaba como mensaje, así que un botón "Ver la carta (PDF)" acababa
+  // escribiéndole al bot la URL entera en vez de abrirla.
+  if (action.type === 'link') {
+    return `
+    <a class="${className}" href="${esc(payload)}" target="_blank" rel="noopener">
+      ${iconHtml} ${esc(label)}
+    </a>
+  `;
+  }
+
   return `
-    <button class="${className}" onclick="this.getRootNode().host.sendMessage('${payload}')">
-      ${iconHtml} ${label}
+    <button class="${className}" onclick="this.getRootNode().host.sendMessage('${esc(payload)}')">
+      ${iconHtml} ${esc(label)}
     </button>
   `;
 }
