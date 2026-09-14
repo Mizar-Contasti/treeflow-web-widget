@@ -94,11 +94,13 @@ export function renderRichMessage(block) {
 
 function renderParagraph(block) {
   const items = block.items || [block];
-  return items.map(item => `
-    <div class="rich-paragraph">
-      ${conFormato(item.text || item.content || '')}
-    </div>
-  `).join('');
+  // Sin espacios entre las etiquetas y el texto: `.rich-paragraph` lleva
+  // `white-space: pre-wrap` para respetar los saltos de línea del mensaje, y
+  // también respetaba los de esta plantilla. Cada párrafo salía con una línea
+  // vacía y seis espacios de sangría delante, y otra línea vacía detrás.
+  return items.map(item =>
+    `<div class="rich-paragraph">${conFormato(item.text || item.content || '')}</div>`
+  ).join('');
 }
 
 function renderCard(block) {
