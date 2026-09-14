@@ -205,7 +205,7 @@ export const WIDGET_STYLES = `
     padding: var(--tfw-message-padding, 12px 16px);
     border-radius: var(--tfw-border-radius, 12px);
     word-wrap: break-word;
-    font-size: var(--tfw-font-size-message, 0.9rem);
+    font-size: var(--tfw-font-size-message, 0.8rem);
     line-height: 1.5;
     position: relative;
     display: flex;
@@ -851,7 +851,9 @@ export const WIDGET_STYLES = `
 
   /* Paragraph */
   .rich-paragraph {
-    font-size: 14px;
+    /* El tamaño que se elige en el panel. Estaba fijo en 14px, así que el ajuste
+       no cambiaba nada en un mensaje enriquecido. */
+    font-size: var(--tfw-font-size-message, 0.8rem);
     line-height: 1.5;
     color: #374151;
     margin-bottom: 4px; /* Reduced from 8px */
@@ -874,7 +876,7 @@ export const WIDGET_STYLES = `
     border-radius: 8px;
     cursor: pointer;
     font-weight: 500;
-    font-size: 13px;
+    font-size: var(--tfw-font-size-message, 0.8rem);
     font-family: inherit;
     text-transform: none;
     transition: all 0.2s;
