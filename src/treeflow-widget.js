@@ -277,6 +277,14 @@ class TreeFlowWidget extends HTMLElement {
     const cssVar = (name, value, unit = '') =>
       (value !== undefined && value !== null && value !== '') ? `${name}: ${value}${unit};` : '';
 
+    // El panel guarda los tamaños de letra en rem ("0.8rem"). Dentro del widget
+    // un rem es la letra base de la web que lo aloja, no la nuestra: en una web
+    // con la base a 18px todo el widget crecía con ella. Se pasan a píxeles con
+    // la base con la que se eligieron en el panel, 16px.
+    const aPx = (valor) => (typeof valor === 'string' && /^\s*[\d.]+rem\s*$/.test(valor))
+      ? `${parseFloat(valor) * 16}px`
+      : valor;
+
     const themeVars = [
       cssVar('--tfw-primary-color', this.config.primaryColor),
       cssVar('--tfw-header-bg', this.config.primaryColor),
@@ -285,8 +293,8 @@ class TreeFlowWidget extends HTMLElement {
       cssVar('--tfw-widget-z-index', this.config.zIndex),
       cssVar('--tfw-user-message-bg', this.config.userMessageBg),
       cssVar('--tfw-widget-button-bg', this.config.widgetButtonBg),
-      cssVar('--tfw-font-size', this.config.fontSize),
-      cssVar('--tfw-font-size-message', this.config.fontSizeMessage),
+      cssVar('--tfw-font-size', aPx(this.config.fontSize)),
+      cssVar('--tfw-font-size-message', aPx(this.config.fontSizeMessage)),
       cssVar('--tfw-widget-width', this.config.widgetWidth, 'px'),
       cssVar('--tfw-widget-height', this.config.widgetHeight, 'px'),
       cssVar('--tfw-border-radius', this.config.borderRadius, 'px'),

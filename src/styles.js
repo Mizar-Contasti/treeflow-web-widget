@@ -150,7 +150,9 @@ export const WIDGET_STYLES = `
   
   .chat-title {
     font-weight: 600;
-    font-size: var(--tfw-font-size-md, 1rem);
+    /* 14px, como el título del widget de la app. Era 1rem: 16px, y más en una
+       web con la letra base grande. */
+    font-size: 14px;
     display: flex;
     align-items: center;
     gap: var(--tfw-spacing-sm, 8px);
@@ -205,7 +207,7 @@ export const WIDGET_STYLES = `
     padding: var(--tfw-message-padding, 12px 16px);
     border-radius: var(--tfw-border-radius, 12px);
     word-wrap: break-word;
-    font-size: var(--tfw-font-size-message, 0.8rem);
+    font-size: var(--tfw-font-size-message, 12.8px);
     line-height: 1.5;
     position: relative;
     display: flex;
@@ -240,7 +242,7 @@ export const WIDGET_STYLES = `
     padding: var(--tfw-spacing-md, 12px) var(--tfw-spacing-lg, 16px);
     color: #666;
     font-style: italic;
-    font-size: var(--tfw-font-size-sm, 0.8rem);
+    font-size: var(--tfw-font-size-sm, 12px);
     margin-left: var(--tfw-spacing-lg, 16px);
   }
   
@@ -283,7 +285,7 @@ export const WIDGET_STYLES = `
     padding: 6px 12px;
     border-radius: 16px;
     cursor: pointer;
-    font-size: var(--tfw-font-size-sm, 0.8rem);
+    font-size: var(--tfw-font-size-sm, 12px);
     transition: all 0.2s;
     font-weight: 500;
   }
@@ -312,7 +314,7 @@ export const WIDGET_STYLES = `
     border: 1px solid var(--tfw-border-color, #e5e7eb);
     border-radius: 20px;
     padding: 10px 14px;
-    font-size: var(--tfw-font-size-message);
+    font-size: var(--tfw-font-size-message, 12.8px);
     outline: none;
     resize: none;
     min-height: 40px;
@@ -853,7 +855,7 @@ export const WIDGET_STYLES = `
   .rich-paragraph {
     /* El tamaño que se elige en el panel. Estaba fijo en 14px, así que el ajuste
        no cambiaba nada en un mensaje enriquecido. */
-    font-size: var(--tfw-font-size-message, 0.8rem);
+    font-size: var(--tfw-font-size-message, 12.8px);
     line-height: 1.5;
     color: #374151;
     margin-bottom: 4px; /* Reduced from 8px */
@@ -876,7 +878,7 @@ export const WIDGET_STYLES = `
     border-radius: 8px;
     cursor: pointer;
     font-weight: 500;
-    font-size: var(--tfw-font-size-message, 0.8rem);
+    font-size: var(--tfw-font-size-message, 12.8px);
     font-family: inherit;
     text-transform: none;
     transition: all 0.2s;
