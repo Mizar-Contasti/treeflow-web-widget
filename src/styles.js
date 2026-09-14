@@ -1213,7 +1213,11 @@ export const WIDGET_STYLES = `
   }
   
   .input-btn:hover {
-    background: rgba(37, 99, 235, 0.08);
+    /* Un tinte del color de la paleta. Era un azul fijo, rgba(37, 99, 235, 0.08),
+       que salía igual con cualquier paleta. La primera línea es para los
+       navegadores sin color-mix. */
+    background: rgba(0, 0, 0, 0.05);
+    background: color-mix(in srgb, var(--tfw-primary-color, #2563eb) 10%, transparent);
     transform: scale(1.05);
   }
   
