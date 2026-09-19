@@ -2,7 +2,8 @@ import { WIDGET_STYLES } from './styles.js';
 import { ICONS, getIconHtml } from './icons.js';
 import { renderRichMessage, conFormato } from './renderers.js';
 import {
-  getDeviceType, resolveMaximizeDevices, resolveHeaderButtons, opensFullscreen, getOpenSize, OPEN_MS, CLOSE_MS,
+  getDeviceType, resolveMaximizeDevices, resolveHeaderButtons, opensFullscreen, getOpenSize, getLauncherSize,
+  OPEN_MS, CLOSE_MS,
 } from './responsive.js';
 
 // Config remota (GET /widget-config/{tree-id}) usa los mismos nombres que el
@@ -174,11 +175,21 @@ class TreeFlowWidget extends HTMLElement {
   // Aplica lo que depende del dispositivo: el tamaño de la ventana abierta y,
   // vía updateChatDisplay, el estado y el botón de maximizar.
   applyResponsive() {
+    const device = this.getDeviceType();
     const size = getOpenSize(
-      this.getDeviceType(),
+      device,
       { width: window.innerWidth, height: window.innerHeight },
       this.config,
     );
+    // En un teléfono el icono del lanzador mide lo que el botón de enviar.
+    const lanzador = getLauncherSize(device);
+    if (lanzador) {
+      this.style.setProperty('--tfw-launcher-size', `${lanzador.size}px`);
+      this.style.setProperty('--tfw-launcher-icon-size', `${lanzador.icon}px`);
+    } else {
+      this.style.removeProperty('--tfw-launcher-size');
+      this.style.removeProperty('--tfw-launcher-icon-size');
+    }
     // Estilo en línea sobre el propio elemento: gana a `:host` del shadow DOM.
     // Sin tamaño propio se quita, y vuelven los valores de la config.
     if (size) {

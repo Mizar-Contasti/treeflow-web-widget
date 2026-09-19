@@ -119,3 +119,19 @@ export function getOpenSize(deviceType, viewport, cfg = {}) {
 // que también decide cuándo termina la animación.
 export const OPEN_MS = { desktop: 200, tablet: 240, mobile: 300 };
 export const CLOSE_MS = { desktop: 150, tablet: 180, mobile: 240 };
+
+// Tamaño del botón de enviar del chat, en píxeles. Tiene que coincidir con
+// `.send-btn` en styles.js (36px). En un teléfono el icono del lanzador (el
+// círculo que abre el chat) mide lo mismo: 60px son demasiado en una pantalla
+// tan pequeña.
+export const SEND_BUTTON_PX = 36;
+const MOBILE_LAUNCHER_ICON_PX = 20;
+
+/**
+ * Tamaño del lanzador y de su icono en este dispositivo, o `null` si vale el
+ * que trae la configuración (tablet y escritorio).
+ */
+export function getLauncherSize(deviceType) {
+  if (deviceType !== 'mobile') return null;
+  return { size: SEND_BUTTON_PX, icon: MOBILE_LAUNCHER_ICON_PX };
+}
