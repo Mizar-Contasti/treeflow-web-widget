@@ -294,6 +294,17 @@ treeflow-web-widget/
 └── package.json
 ```
 
+## 🧱 Bloque HTML
+
+Un bloque `{ "type": "html", "items": [{ "html": "..." }] }` pinta HTML dentro del chat, igual que el widget de la app. El contenido puede ser:
+
+- HTML escrito a mano (`<h3>`, `<p>`, `<blockquote>`, `<img>`, `<a>`, listas, tablas…).
+- Una variable de sesión que devolvió una herramienta o una API: HTML, o un JSON (objeto o lista, también dentro de `data`, `items`, `noticias` o `key_value`) cuyas filas llevan `title`, `image` y `content`/`html`/`excerpt`. Cada fila se pinta como un fragmento y se separan con una línea.
+
+Una respuesta del motor de tipo `html` se entrega como este mismo bloque.
+
+Todo pasa por [DOMPurify](https://github.com/cure53/DOMPurify) antes de pintarse: no llegan `script`, `iframe`, `object`, `embed`, `form` ni `input`, ni atributos `on*`. Los enlaces se abren en una pestaña nueva con `rel="noopener noreferrer"`.
+
 ## 🌐 Compatibilidad
 
 - **Navegadores**: Chrome 54+, Firefox 63+, Safari 10.1+, Edge 79+
@@ -302,11 +313,30 @@ treeflow-web-widget/
 
 ## 📱 Responsive Design
 
-El widget se adapta automáticamente a diferentes tamaños de pantalla:
+El chat tiene tres estados: **cerrado** (sólo el icono), **abierto** (ventana flotante) y **maximizado** (ocupa todo el viewport). Según el ancho de la pantalla:
 
-- **Desktop**: Widget flotante con tamaño configurable
-- **Tablet**: Ajuste automático del ancho
-- **Móvil**: Ocupa casi toda la pantalla para mejor usabilidad
+- **Desktop** (más ancho que el corte de tablet): ventana flotante con el tamaño configurado. El botón de maximizar es opcional.
+- **Tablet** (hasta el corte de tablet, 1024 px por defecto): ventana flotante que no desborda la pantalla (como máximo el 88 % del ancho y el 82 % del alto). El botón de maximizar es opcional.
+- **Móvil** (hasta el corte móvil, 640 px por defecto): sólo hay dos estados, cerrado o a pantalla completa. Al tocar el icono, el chat ocupa todo el ancho y el alto del viewport, y **no hay botón de maximizar**.
+
+Estos ajustes llegan por la configuración remota (`GET /widget-config/{tree-id}`), que se edita en la pestaña *Responsive* del panel; también valen en `window.treeflowConfig`:
+
+| Clave | Por defecto | Qué hace |
+|---|---|---|
+| `maximizeDesktop`, `maximizeTablet` | ver abajo | Muestra el botón de maximizar en ese dispositivo |
+| `minimizeDesktop`, `minimizeTablet`, `minimizeMobile` | `true`, `true`, `false` | Botón de minimizar: vuelve al icono del lanzador |
+| `closeDesktop`, `closeTablet`, `closeMobile` | `false`, `false`, `false` | Botón de cerrar: **elimina el chat de la página**, con su icono, hasta que se recargue |
+| `mobileAutoFullscreen` | `true` | Abre a pantalla completa en móvil. Apagado, se abre como ventana flotante |
+| `mobileBreakpoint` | `640` | Ancho máximo (px) que se considera teléfono |
+| `tabletBreakpoint` | `1024` | Ancho máximo (px) que se considera tablet |
+| `tabletAutoFit` | `true` | Recorta la ventana para que quepa en tablet |
+| `tabletWidth`, `tabletHeight` | `widgetWidth`, `widgetHeight` | Tamaño de la ventana en tablet |
+
+Sin `maximizeDesktop`/`maximizeTablet`, manda la configuración anterior: `enableMaximize` (o el atributo `enable-maximize`) y, si existe, `maximizeVisibility`. Sin ninguna de las dos, el botón aparece en desktop y tablet. `enable-maximize="false"` lo apaga en todos.
+
+Los botones de la cabecera son los únicos que hacen algo: tocar el título o el resto de la cabecera no cierra ni minimiza el chat. Ojo con un dispositivo sin minimizar ni cerrar (es el caso de móvil por defecto): el visitante no tiene cómo salir del chat, que ocupa toda la pantalla, salvo recargando la página. Por programa, `widget.close()` deja sólo el icono y `widget.destroy()` quita el chat de la página.
+
+El tamaño se reevalúa al redimensionar o girar el dispositivo. Un chat que se abrió a pantalla completa por ser un teléfono vuelve a ventana si la pantalla pasa a ser de tablet o de escritorio.
 
 ## 🔒 Consideraciones de Seguridad
 

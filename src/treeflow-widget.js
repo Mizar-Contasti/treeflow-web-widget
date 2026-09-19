@@ -1,6 +1,7 @@
 import { WIDGET_STYLES } from './styles.js';
 import { ICONS, getIconHtml } from './icons.js';
 import { renderRichMessage, conFormato } from './renderers.js';
+import { getDeviceType, resolveMaximizeDevices, resolveHeaderButtons, opensFullscreen, getOpenSize } from './responsive.js';
 
 // Config remota (GET /widget-config/{tree-id}) usa los mismos nombres que el
 // panel del dashboard (useTreeflowWebModal.ts); el widget internamente usa
@@ -24,6 +25,11 @@ class TreeFlowWidget extends HTMLElement {
     this.attachShadow({ mode: 'open' });
     this.sessionId = this.getOrCreateSessionId();
     this.chatState = 'closed'; // closed, open, maximized
+    // El chat quedó maximizado porque el dispositivo es un teléfono, no porque
+    // el visitante lo pidiera: al dejar de serlo (girar, cambiar de tamaño) vuelve
+    // a "abierto" en lugar de quedarse a pantalla completa sin botón para restaurar.
+    this.autoMaximized = false;
+    this.onViewportResize = null;
     this.messages = [];
     this.config = {};
     // Contexto que viaja en cada petición. Arranca con lo definido en el panel
@@ -101,6 +107,7 @@ class TreeFlowWidget extends HTMLElement {
 
     this.render();
     this.setupEventListeners();
+    this.startViewportListener();
 
     if (this.config.openOnStart && this.chatState === 'closed') {
       this.open();
@@ -116,6 +123,58 @@ class TreeFlowWidget extends HTMLElement {
         this.sendStartEvent(this.config.startEvent);
       }, 500);
     }
+  }
+
+  disconnectedCallback() {
+    if (this.onViewportResize) {
+      window.removeEventListener('resize', this.onViewportResize);
+      this.onViewportResize = null;
+    }
+  }
+
+  // El tamaño de la ventana y el botón de maximizar dependen del ancho de la
+  // pantalla, que cambia al girar el teléfono o redimensionar la ventana. Se
+  // reevalúa una vez por fotograma, no por cada evento.
+  startViewportListener() {
+    if (this.onViewportResize) return;
+    let pendiente = null;
+    this.onViewportResize = () => {
+      if (pendiente) return;
+      pendiente = requestAnimationFrame(() => {
+        pendiente = null;
+        this.applyResponsive();
+      });
+    };
+    window.addEventListener('resize', this.onViewportResize, { passive: true });
+  }
+
+  getDeviceType() {
+    return getDeviceType(window.innerWidth, this.config);
+  }
+
+  // ¿Alguno de los dispositivos tiene este botón? Si ninguno, ni se pinta.
+  anyDevice(porDispositivo) {
+    return Boolean(porDispositivo.desktop || porDispositivo.tablet || porDispositivo.mobile);
+  }
+
+  // Aplica lo que depende del dispositivo: el tamaño de la ventana abierta y,
+  // vía updateChatDisplay, el estado y el botón de maximizar.
+  applyResponsive() {
+    const size = getOpenSize(
+      this.getDeviceType(),
+      { width: window.innerWidth, height: window.innerHeight },
+      this.config,
+    );
+    // Estilo en línea sobre el propio elemento: gana a `:host` del shadow DOM.
+    // Sin tamaño propio se quita, y vuelven los valores de la config.
+    if (size) {
+      this.style.setProperty('--tfw-widget-width', `${size.width}px`);
+      this.style.setProperty('--tfw-widget-height', `${size.height}px`);
+    } else {
+      this.style.removeProperty('--tfw-widget-width');
+      this.style.removeProperty('--tfw-widget-height');
+    }
+    this.updateChatDisplay();
   }
 
   normalizeRemoteConfig(raw) {
@@ -192,6 +251,25 @@ class TreeFlowWidget extends HTMLElement {
       return globalConfig[key] !== undefined ? globalConfig[key] : def;
     };
 
+    // Ajustes responsive: sólo llegan por config remota (o `window.treeflowConfig`),
+    // no tienen atributo HTML. Sin valor, `responsive.js` aplica sus defaults.
+    const raw = (key) => (remoteConfig[key] !== undefined ? remoteConfig[key] : globalConfig[key]);
+    const enableMaximize = getBool('enable-maximize', 'enableMaximize', true);
+    const maximizeDevices = resolveMaximizeDevices({
+      enableMaximize,
+      maximizeDesktop: raw('maximizeDesktop'),
+      maximizeTablet: raw('maximizeTablet'),
+      maximizeVisibility: raw('maximizeVisibility'),
+    });
+    const headerButtons = resolveHeaderButtons({
+      minimizeDesktop: raw('minimizeDesktop'),
+      minimizeTablet: raw('minimizeTablet'),
+      minimizeMobile: raw('minimizeMobile'),
+      closeDesktop: raw('closeDesktop'),
+      closeTablet: raw('closeTablet'),
+      closeMobile: raw('closeMobile'),
+    });
+
     return {
       title: getVal('title', 'title', 'TreeFlow Chat'),
       endpoint: getVal('endpoint', 'apiUrl', 'http://localhost:8000/message'),
@@ -213,7 +291,17 @@ class TreeFlowWidget extends HTMLElement {
       sttEnabled: getBool('stt-enabled', 'sttEnabled', false),
       sttEndpoint: getVal('stt-endpoint', 'sttEndpoint', 'http://localhost:8000/stt'),
       startEvent: getVal('start-event', 'startEvent', null),
-      enableMaximize: getBool('enable-maximize', 'enableMaximize', true),
+      enableMaximize,
+      // En qué dispositivos hay botón de maximizar: { desktop, tablet, mobile }.
+      maximizeDevices,
+      // Botones de minimizar y de cerrar por dispositivo: { minimize: {...}, close: {...} }.
+      headerButtons,
+      mobileAutoFullscreen: raw('mobileAutoFullscreen'),
+      mobileBreakpoint: raw('mobileBreakpoint'),
+      tabletBreakpoint: raw('tabletBreakpoint'),
+      tabletAutoFit: raw('tabletAutoFit'),
+      tabletWidth: raw('tabletWidth'),
+      tabletHeight: raw('tabletHeight'),
       subtitle: getVal('subtitle', 'subtitle', ''),
       botSenderName: getVal('bot-sender-name', 'botSenderName', null) || this.getAttribute('bot_sender_name'),
       botAvatarIcon: getVal('bot-avatar-icon', 'botAvatarIcon', null) || this.getAttribute('bot_avatar_icon'),
@@ -339,9 +427,9 @@ class TreeFlowWidget extends HTMLElement {
             ${this.config.subtitle ? `<div class="chat-subtitle">${this.config.subtitle}</div>` : ''}
           </div>
           <div class="chat-controls">
-            <button class="control-btn" id="minimizeBtn" title="Minimizar">${ICONS.MINIMIZE}</button>
-            ${this.config.enableMaximize ? `<button class="control-btn" id="maximizeBtn" title="Maximizar">${ICONS.MAXIMIZE}</button>` : ''}
-            <button class="control-btn" id="closeBtn" title="Cerrar">${ICONS.CLOSE}</button>
+            ${this.anyDevice(this.config.headerButtons.minimize) ? `<button class="control-btn" id="minimizeBtn" title="Minimizar">${ICONS.MINIMIZE}</button>` : ''}
+            ${(this.config.maximizeDevices.desktop || this.config.maximizeDevices.tablet) ? `<button class="control-btn" id="maximizeBtn" title="Maximizar">${ICONS.MAXIMIZE}</button>` : ''}
+            ${this.anyDevice(this.config.headerButtons.close) ? `<button class="control-btn" id="closeBtn" title="Cerrar">${ICONS.CLOSE}</button>` : ''}
           </div>
         </div>
         
@@ -455,6 +543,8 @@ class TreeFlowWidget extends HTMLElement {
         // Given the complexity, let's just clear for now on re-render (config change).
       });
     }
+
+    this.applyResponsive();
   }
 
   setupEventListeners() {
@@ -486,7 +576,9 @@ class TreeFlowWidget extends HTMLElement {
       }
     });
 
-    closeBtn.addEventListener('click', () => this.close());
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => this.destroy());
+    }
     if (minimizeBtn) {
       minimizeBtn.addEventListener('click', () => this.minimize());
     }
@@ -757,13 +849,18 @@ class TreeFlowWidget extends HTMLElement {
     this.updateChatDisplay();
   }
 
+  // Minimizar es volver al icono del lanzador, desde "abierto" o desde
+  // "maximizado". Restaurar la ventana es cosa del botón de maximizar.
   minimize() {
-    if (this.chatState === 'maximized') {
-      this.chatState = 'open';
-    } else if (this.chatState === 'open') {
-      this.chatState = 'closed';
-    }
+    this.chatState = 'closed';
     this.updateChatDisplay();
+  }
+
+  // Cerrar del todo: quita el chat de la página, con su icono, hasta que se
+  // recargue. `close()` sigue siendo el que deja sólo el icono.
+  destroy() {
+    this.chatState = 'closed';
+    this.remove();
   }
 
   maximize() {
@@ -792,6 +889,20 @@ class TreeFlowWidget extends HTMLElement {
 
     if (!chatWindow) return;
 
+    // En un teléfono el chat sólo está cerrado o a pantalla completa: al abrirlo
+    // salta directo a maximizado, sin pasar por la ventana flotante.
+    const device = this.getDeviceType();
+    const fullscreen = opensFullscreen(device, this.config);
+    if (fullscreen) {
+      if (this.chatState === 'open') this.chatState = 'maximized';
+      if (this.chatState === 'maximized') this.autoMaximized = true;
+    } else if (this.autoMaximized) {
+      // Ya no es un teléfono: lo que se maximizó solo vuelve a ventana.
+      if (this.chatState === 'maximized') this.chatState = 'open';
+      this.autoMaximized = false;
+    }
+    if (this.chatState === 'closed') this.autoMaximized = false;
+
     chatWindow.classList.remove('closed', 'open', 'maximized');
     chatWindow.classList.add(this.chatState);
 
@@ -799,11 +910,20 @@ class TreeFlowWidget extends HTMLElement {
       toggleBtn.style.display = this.chatState === 'closed' ? 'flex' : 'none';
     }
 
+    // Minimizar y cerrar se ofrecen según el dispositivo. Si no hay ninguno, el
+    // visitante sólo puede salir con lo que la página haga por su cuenta.
     if (minimizeBtn) {
-      minimizeBtn.style.display = this.chatState === 'closed' ? 'none' : 'flex';
+      const abierto = this.chatState !== 'closed';
+      minimizeBtn.style.display = (abierto && this.config.headerButtons.minimize[device]) ? 'flex' : 'none';
+    }
+    const closeBtn = this.shadowRoot.getElementById('closeBtn');
+    if (closeBtn) {
+      const abierto = this.chatState !== 'closed';
+      closeBtn.style.display = (abierto && this.config.headerButtons.close[device]) ? 'flex' : 'none';
     }
 
     if (maximizeBtn) {
+      maximizeBtn.style.display = this.config.maximizeDevices[device] ? 'flex' : 'none';
       maximizeBtn.innerHTML = this.chatState === 'maximized' ? ICONS.RESTORE : ICONS.MAXIMIZE;
       maximizeBtn.title = this.chatState === 'maximized' ? 'Restaurar' : 'Maximizar';
     }
@@ -1630,9 +1750,20 @@ class TreeFlowWidget extends HTMLElement {
     }
 
     return {
-      message: data.response?.value || data.message || 'Sin respuesta',
+      message: this.mensajeDeRespuesta(data),
       suggestions: data.suggestions || data.response?.suggestions || []
     };
+  }
+
+  // Lo que se pinta de la respuesta del motor. Una respuesta de tipo `html`
+  // trae el HTML como texto: se entrega como bloque `html` para que se pinte
+  // saneado, igual que en el widget de la app, en vez de enseñar las etiquetas.
+  mensajeDeRespuesta(data) {
+    const respuesta = data.response;
+    if (respuesta && respuesta.type === 'html' && respuesta.value) {
+      return [{ type: 'html', align: 'vertical', items: [{ html: String(respuesta.value) }] }];
+    }
+    return respuesta?.value || data.message || 'Sin respuesta';
   }
 
   async callBackendEvent(eventName) {
@@ -1673,7 +1804,7 @@ class TreeFlowWidget extends HTMLElement {
     }
 
     return {
-      message: data.response?.value || data.message || 'Sin respuesta',
+      message: this.mensajeDeRespuesta(data),
       suggestions: data.suggestions || data.response?.suggestions || []
     };
   }
@@ -1791,7 +1922,7 @@ class TreeFlowWidget extends HTMLElement {
     }
 
     return {
-      message: data.response?.value || data.message || 'Sin respuesta',
+      message: this.mensajeDeRespuesta(data),
       suggestions: data.suggestions || data.response?.suggestions || []
     };
   }

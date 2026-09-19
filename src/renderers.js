@@ -1,4 +1,5 @@
 import { ICONS } from './icons.js';
+import { renderHtml } from './html-block.js';
 
 // Las etiquetas y los payloads los escribe quien construye el bot, no un
 // visitante, pero acaban dentro de atributos HTML y de un onclick. Escaparlos
@@ -81,6 +82,8 @@ export function renderRichMessage(block) {
       return renderAccordion(block);
     case 'dropdown':
       return renderDropdown(block);
+    case 'html':
+      return renderHtml(block);
     case 'divider':
       return renderDivider(block);
     case 'paragraph':

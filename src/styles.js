@@ -94,6 +94,9 @@ export const WIDGET_STYLES = `
     bottom: 0;
     width: 100vw;
     height: 100vh;
+    /* En un teléfono 100vh incluye la barra del navegador y la ventana se
+       desborda por debajo; dvh es la altura visible en cada momento. */
+    height: 100dvh;
     border-radius: 0;
     transform: scale(1);
     opacity: 1;
@@ -852,6 +855,103 @@ export const WIDGET_STYLES = `
   .rich-divider-con-texto.rich-divider-dotted::after { border-top-style: dotted; }
 
   /* Paragraph */
+  /* Bloque HTML. El contenido lo escribe quien construye el bot, o lo devuelve
+     una API, y llega saneado; aquí sólo se le da una tipografía que no choque
+     con la del chat. Los mismos ajustes que en el widget de la app. */
+  .rich-html-block {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .rich-html-block.horizontal {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .rich-html {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    font-size: var(--tfw-font-size-message, 12.8px);
+    line-height: 1.5;
+    word-break: break-word;
+    color: inherit;
+  }
+
+  .rich-html h1, .rich-html h2, .rich-html h3,
+  .rich-html h4, .rich-html h5, .rich-html h6 {
+    margin: 8px 0 4px;
+    font-weight: 700;
+    line-height: 1.25;
+    color: inherit;
+  }
+  .rich-html h1 { font-size: 1.25em; }
+  .rich-html h2 { font-size: 1.15em; }
+  .rich-html h3 { font-size: 1.05em; }
+  .rich-html h4 { font-size: 0.95em; }
+  .rich-html h5, .rich-html h6 { font-size: 0.875em; }
+
+  .rich-html p { margin: 4px 0; font-size: inherit; line-height: 1.5; }
+
+  .rich-html a {
+    color: var(--tfw-primary-color, #2563eb);
+    text-decoration: underline;
+    font-weight: 500;
+  }
+  .rich-html a:hover { text-decoration: none; }
+
+  .rich-html img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 8px 0;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .rich-html blockquote {
+    margin: 8px 0;
+    padding: 4px 8px 4px 12px;
+    border-left: 3px solid var(--tfw-primary-color, #2563eb);
+    background: rgba(128, 128, 128, 0.1);
+    border-radius: 0 6px 6px 0;
+    font-style: italic;
+    font-size: 0.9em;
+  }
+
+  .rich-html ul, .rich-html ol { margin: 4px 0; padding-left: 20px; }
+  .rich-html li { margin: 2px 0; }
+
+  .rich-html pre, .rich-html code {
+    font-family: monospace;
+    background: rgba(128, 128, 128, 0.15);
+    padding: 2px 5px;
+    border-radius: 6px;
+    font-size: 0.85em;
+  }
+  .rich-html pre { padding: 8px; overflow-x: auto; margin: 8px 0; }
+
+  .rich-html table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0;
+    font-size: 0.9em;
+  }
+  .rich-html th, .rich-html td {
+    border: 1px solid rgba(128, 128, 128, 0.35);
+    padding: 6px;
+    text-align: left;
+  }
+  .rich-html th { background: rgba(128, 128, 128, 0.12); font-weight: 600; }
+
+  .rich-html hr {
+    border: 0;
+    border-top: 1px solid rgba(128, 128, 128, 0.3);
+    margin: 12px 0;
+  }
+
   .rich-paragraph {
     /* El tamaño que se elige en el panel. Estaba fijo en 14px, así que el ajuste
        no cambiaba nada en un mensaje enriquecido. */
@@ -1113,22 +1213,9 @@ export const WIDGET_STYLES = `
     background: #f3f4f6;
   }
 
-  /* Responsive */
-  @media (max-width: 480px) {
-    :host {
-      --tfw-widget-width: 100%;
-      --tfw-widget-height: 100%;
-      --tfw-widget-position-bottom: 0;
-      --tfw-widget-position-right: 0;
-      --tfw-border-radius: 0;
-    }
-    
-    .chat-window {
-      width: 100%;
-      height: 100%;
-      border-radius: 0;
-    }
-  }
+  /* Responsive: sin @media. En un teléfono el chat pasa a pantalla completa
+     por JavaScript (estado "maximized"), según los puntos de corte que el
+     panel guarda; ver responsive.js. */
 
 
   /* Header Subtitle & Title Group */
