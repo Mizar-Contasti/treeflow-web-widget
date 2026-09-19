@@ -103,6 +103,58 @@ export const WIDGET_STYLES = `
     z-index: 99999;
   }
   
+  /* Animación de abrir y cerrar el chat. Cada dispositivo tiene la suya:
+       - desktop: la ventana crece desde la esquina del icono (y vuelve a ella);
+       - tablet: sube desde abajo con un desvanecido;
+       - móvil: la pantalla completa se desliza desde abajo como una hoja.
+     .opening y .closing los pone treeflow-widget.js, junto con la clase
+     del dispositivo y la duración en --tfw-anim-ms. Mientras dura el cierre la
+     ventana sigue en pantalla: sólo pasa a .closed (display: none) al acabar. */
+  .chat-window { transform-origin: var(--tfw-anim-origin, bottom right); }
+
+  @keyframes tfw-in-desktop {
+    from { opacity: 0; transform: scale(0.55) translateY(16px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  @keyframes tfw-out-desktop {
+    from { opacity: 1; transform: scale(1) translateY(0); }
+    to   { opacity: 0; transform: scale(0.55) translateY(16px); }
+  }
+  @keyframes tfw-in-tablet {
+    from { opacity: 0; transform: translateY(40px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes tfw-out-tablet {
+    from { opacity: 1; transform: translateY(0); }
+    to   { opacity: 0; transform: translateY(40px); }
+  }
+  @keyframes tfw-in-mobile {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+  }
+  @keyframes tfw-out-mobile {
+    from { transform: translateY(0); }
+    to   { transform: translateY(100%); }
+  }
+  /* El icono reaparece con un pequeño rebote al volver del chat. */
+  @keyframes tfw-pop {
+    0%   { transform: scale(0.5); opacity: 0; }
+    70%  { transform: scale(1.12); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .chat-window.opening.dev-desktop { animation: tfw-in-desktop var(--tfw-anim-ms, 200ms) cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .chat-window.closing.dev-desktop { animation: tfw-out-desktop var(--tfw-anim-ms, 150ms) ease-in both; }
+  .chat-window.opening.dev-tablet  { animation: tfw-in-tablet var(--tfw-anim-ms, 240ms) cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .chat-window.closing.dev-tablet  { animation: tfw-out-tablet var(--tfw-anim-ms, 180ms) ease-in both; }
+  .chat-window.opening.dev-mobile  { animation: tfw-in-mobile var(--tfw-anim-ms, 300ms) cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .chat-window.closing.dev-mobile  { animation: tfw-out-mobile var(--tfw-anim-ms, 240ms) cubic-bezier(0.4, 0, 1, 1) both; }
+  .widget-button.pop { animation: tfw-pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .chat-window.opening, .chat-window.closing, .widget-button.pop { animation: none; }
+  }
+
   /* Hide content when closed */
   .chat-window.closed .chat-header,
   .chat-window.closed .chat-messages,

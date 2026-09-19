@@ -1,7 +1,9 @@
 import { WIDGET_STYLES } from './styles.js';
 import { ICONS, getIconHtml } from './icons.js';
 import { renderRichMessage, conFormato } from './renderers.js';
-import { getDeviceType, resolveMaximizeDevices, resolveHeaderButtons, opensFullscreen, getOpenSize } from './responsive.js';
+import {
+  getDeviceType, resolveMaximizeDevices, resolveHeaderButtons, opensFullscreen, getOpenSize, OPEN_MS, CLOSE_MS,
+} from './responsive.js';
 
 // Config remota (GET /widget-config/{tree-id}) usa los mismos nombres que el
 // panel del dashboard (useTreeflowWebModal.ts); el widget internamente usa
@@ -19,6 +21,11 @@ const REMOTE_CONFIG_KEY_MAP = {
   defaultLanguage: 'lang',
 };
 
+// Quien pide menos movimiento en su sistema no ve animaciones.
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+  && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 class TreeFlowWidget extends HTMLElement {
   constructor() {
     super();
@@ -30,6 +37,11 @@ class TreeFlowWidget extends HTMLElement {
     // a "abierto" en lugar de quedarse a pantalla completa sin botón para restaurar.
     this.autoMaximized = false;
     this.onViewportResize = null;
+    this.animTimer = null;
+    // La primera apertura de la página ("Abrir al iniciar") no se anima: un chat
+    // que se desliza nada más cargar, y en un teléfono a pantalla completa, sería
+    // un sobresalto.
+    this.skipNextAnimation = false;
     this.messages = [];
     this.config = {};
     // Contexto que viaja en cada petición. Arranca con lo definido en el panel
@@ -110,6 +122,7 @@ class TreeFlowWidget extends HTMLElement {
     this.startViewportListener();
 
     if (this.config.openOnStart && this.chatState === 'closed') {
+      this.skipNextAnimation = true;
       this.open();
     }
 
@@ -126,6 +139,7 @@ class TreeFlowWidget extends HTMLElement {
   }
 
   disconnectedCallback() {
+    clearTimeout(this.animTimer);
     if (this.onViewportResize) {
       window.removeEventListener('resize', this.onViewportResize);
       this.onViewportResize = null;
@@ -355,6 +369,7 @@ class TreeFlowWidget extends HTMLElement {
       positionStyles = `
         --tfw-widget-position-right: auto;
         --tfw-widget-position-left: 20px;
+        --tfw-anim-origin: bottom left;
       `;
     }
 
@@ -894,6 +909,79 @@ class TreeFlowWidget extends HTMLElement {
     }
   }
 
+  // Pone la clase visual del chat (closed, open o maximized) y, al abrirlo o
+  // cerrarlo, lo anima con la animación del dispositivo (ver styles.js).
+  //
+  // Cerrar es lo delicado: `.closed` es display: none, así que si se pusiera al
+  // instante no habría salida. Mientras dura la animación la ventana sigue
+  // pintada con `.closing` y el icono del lanzador espera; sólo al acabar pasa a
+  // `.closed` y el icono reaparece.
+  applyVisualState(chatWindow, toggleBtn, device) {
+    const visual = ['maximized', 'open', 'closed'].find((c) => chatWindow.classList.contains(c)) || 'closed';
+    const objetivo = this.chatState;
+    const cerrando = chatWindow.classList.contains('closing');
+    const animar = !this.skipNextAnimation && !prefersReducedMotion();
+
+    if (objetivo === 'closed') {
+      if (cerrando) return; // ya se está cerrando: que termine
+      if (visual === 'closed') {
+        if (toggleBtn) toggleBtn.style.display = 'flex';
+        return;
+      }
+      this.skipNextAnimation = false;
+      clearTimeout(this.animTimer);
+      if (!animar) {
+        this.mostrarCerrado(chatWindow, toggleBtn, false);
+        return;
+      }
+      chatWindow.classList.remove('opening');
+      this.claseDeDispositivo(chatWindow, device, CLOSE_MS[device]);
+      chatWindow.classList.add('closing');
+      this.animTimer = setTimeout(() => this.mostrarCerrado(chatWindow, toggleBtn, true), CLOSE_MS[device]);
+      return;
+    }
+
+    // Abierto o maximizado. Si se volvía a abrir en pleno cierre, se cancela.
+    if (cerrando) {
+      clearTimeout(this.animTimer);
+      chatWindow.classList.remove('closing');
+    }
+    chatWindow.classList.remove('closed', 'open', 'maximized');
+    chatWindow.classList.add(objetivo);
+    if (toggleBtn) toggleBtn.style.display = 'none';
+
+    if (visual === 'closed') {
+      const saltar = this.skipNextAnimation;
+      this.skipNextAnimation = false;
+      if (animar && !saltar) {
+        clearTimeout(this.animTimer);
+        this.claseDeDispositivo(chatWindow, device, OPEN_MS[device]);
+        chatWindow.classList.add('opening');
+        this.animTimer = setTimeout(() => chatWindow.classList.remove('opening'), OPEN_MS[device]);
+      }
+    }
+  }
+
+  // La clase del dispositivo elige qué animación se usa, y la duración va en
+  // una variable para que el CSS y este archivo no se contradigan.
+  claseDeDispositivo(chatWindow, device, ms) {
+    chatWindow.classList.remove('dev-desktop', 'dev-tablet', 'dev-mobile');
+    chatWindow.classList.add(`dev-${device}`);
+    chatWindow.style.setProperty('--tfw-anim-ms', `${ms}ms`);
+  }
+
+  // Fin del cierre: la ventana desaparece y el icono vuelve, con su rebote.
+  mostrarCerrado(chatWindow, toggleBtn, conRebote) {
+    chatWindow.classList.remove('closing', 'opening', 'open', 'maximized');
+    chatWindow.classList.add('closed');
+    if (!toggleBtn) return;
+    toggleBtn.style.display = 'flex';
+    if (conRebote) {
+      toggleBtn.classList.add('pop');
+      setTimeout(() => toggleBtn.classList.remove('pop'), 300);
+    }
+  }
+
   updateChatDisplay() {
     const chatWindow = this.shadowRoot.getElementById('chatWindow');
     const toggleBtn = this.shadowRoot.getElementById('toggleBtn');
@@ -916,12 +1004,7 @@ class TreeFlowWidget extends HTMLElement {
     }
     if (this.chatState === 'closed') this.autoMaximized = false;
 
-    chatWindow.classList.remove('closed', 'open', 'maximized');
-    chatWindow.classList.add(this.chatState);
-
-    if (toggleBtn) {
-      toggleBtn.style.display = this.chatState === 'closed' ? 'flex' : 'none';
-    }
+    this.applyVisualState(chatWindow, toggleBtn, device);
 
     // Minimizar y cerrar se ofrecen según el dispositivo. Si no hay ninguno, el
     // visitante sólo puede salir con lo que la página haga por su cuenta.

@@ -112,3 +112,10 @@ export function getOpenSize(deviceType, viewport, cfg = {}) {
 
   return null;
 }
+
+// Duración, en milisegundos, de la animación de abrir y de cerrar el chat en
+// cada dispositivo. El CSS (styles.js) tiene su propio valor por defecto, pero
+// el widget lo pisa con `--tfw-anim-ms`, así que ésta es la que manda: es la
+// que también decide cuándo termina la animación.
+export const OPEN_MS = { desktop: 200, tablet: 240, mobile: 300 };
+export const CLOSE_MS = { desktop: 150, tablet: 180, mobile: 240 };

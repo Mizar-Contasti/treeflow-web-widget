@@ -336,6 +336,18 @@ Sin `maximizeDesktop`/`maximizeTablet`, manda la configuración anterior: `enabl
 
 En **tablet y escritorio** la cabecera sólo reacciona por sus botones: tocar el título o el resto de la franja no hace nada. En **móvil**, tocar la franja de la cabecera minimiza el chat (vuelve al icono), haya o no botones; un toque sobre un botón lo atiende el botón. Así, un teléfono siempre tiene salida aunque no tenga botones. En tablet o escritorio sin minimizar ni cerrar, en cambio, el visitante no puede quitar el chat de en medio. Por programa, `widget.close()` deja sólo el icono y `widget.destroy()` quita el chat de la página.
 
+### Animación de abrir y cerrar
+
+Al tocar el icono el chat se abre con una animación, y al minimizarlo vuelve al icono con otra. Cada dispositivo tiene la suya:
+
+| Dispositivo | Abrir | Cerrar | Duración (abrir / cerrar) |
+|---|---|---|---|
+| **Desktop** | La ventana crece desde la esquina del icono | Se encoge hacia ella | 200 / 150 ms |
+| **Tablet** | Sube desde abajo con un desvanecido | Baja y se desvanece | 240 / 180 ms |
+| **Móvil** | La pantalla completa se desliza desde abajo, como una hoja | Se desliza hacia abajo | 300 / 240 ms |
+
+El icono reaparece con un pequeño rebote al cerrar. La primera apertura de la página (*Abrir al iniciar*) no se anima. Quien tiene activado "reducir movimiento" en su sistema (`prefers-reduced-motion`) no ve ninguna animación. Al cerrar, la ventana sigue en pantalla mientras dura la animación y sólo entonces desaparece.
+
 El tamaño se reevalúa al redimensionar o girar el dispositivo. Un chat que se abrió a pantalla completa por ser un teléfono vuelve a ventana si la pantalla pasa a ser de tablet o de escritorio.
 
 ## 🔒 Consideraciones de Seguridad
