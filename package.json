@@ -31,5 +31,20 @@
   },
   "bugs": {
     "url": "https://github.com/treeflow/web-widget/issues"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.28.0",
+    "@babel/preset-env": "^7.28.0",
+    "babel-loader": "^9.2.1",
+    "css-loader": "^6.8.0",
+    "html-webpack-plugin": "^5.5.0",
+    "rimraf": "^5.0.10",
+    "style-loader": "^3.3.0",
+    "webpack": "^5.88.0",
+    "webpack-cli": "^5.1.0",
+    "webpack-dev-server": "^4.15.0"
+  },
+  "dependencies": {
+    "dompurify": "^3.2.0"
   }
 }
