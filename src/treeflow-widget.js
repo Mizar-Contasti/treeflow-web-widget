@@ -579,6 +579,19 @@ class TreeFlowWidget extends HTMLElement {
     if (closeBtn) {
       closeBtn.addEventListener('click', () => this.destroy());
     }
+
+    // En un teléfono, tocar la franja de la cabecera minimiza el chat, haya o no
+    // botones. En tablet y escritorio la cabecera no hace nada: sólo actúan sus
+    // botones. Un toque sobre un botón lo atiende el botón, no la franja.
+    const header = this.shadowRoot.querySelector('.chat-header');
+    if (header) {
+      header.addEventListener('click', (e) => {
+        if (e.target.closest('button')) return;
+        if (this.chatState !== 'closed' && this.getDeviceType() === 'mobile') {
+          this.minimize();
+        }
+      });
+    }
     if (minimizeBtn) {
       minimizeBtn.addEventListener('click', () => this.minimize());
     }

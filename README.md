@@ -334,7 +334,7 @@ Estos ajustes llegan por la configuración remota (`GET /widget-config/{tree-id}
 
 Sin `maximizeDesktop`/`maximizeTablet`, manda la configuración anterior: `enableMaximize` (o el atributo `enable-maximize`) y, si existe, `maximizeVisibility`. Sin ninguna de las dos, el botón aparece en desktop y tablet. `enable-maximize="false"` lo apaga en todos.
 
-Los botones de la cabecera son los únicos que hacen algo: tocar el título o el resto de la cabecera no cierra ni minimiza el chat. Ojo con un dispositivo sin minimizar ni cerrar (es el caso de móvil por defecto): el visitante no tiene cómo salir del chat, que ocupa toda la pantalla, salvo recargando la página. Por programa, `widget.close()` deja sólo el icono y `widget.destroy()` quita el chat de la página.
+En **tablet y escritorio** la cabecera sólo reacciona por sus botones: tocar el título o el resto de la franja no hace nada. En **móvil**, tocar la franja de la cabecera minimiza el chat (vuelve al icono), haya o no botones; un toque sobre un botón lo atiende el botón. Así, un teléfono siempre tiene salida aunque no tenga botones. En tablet o escritorio sin minimizar ni cerrar, en cambio, el visitante no puede quitar el chat de en medio. Por programa, `widget.close()` deja sólo el icono y `widget.destroy()` quita el chat de la página.
 
 El tamaño se reevalúa al redimensionar o girar el dispositivo. Un chat que se abrió a pantalla completa por ser un teléfono vuelve a ventana si la pantalla pasa a ser de tablet o de escritorio.
 
