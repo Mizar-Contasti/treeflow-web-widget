@@ -5,11 +5,11 @@ Widget de chat embebible para TreeFlow - **Integración en 2 líneas de código*
 ## ⚡ Integración Súper Simple
 
 ```html
-<!-- Cargar desde CDN gratuito -->
-<script src="https://cdn.jsdelivr.net/gh/Mizar-Contasti/treeflow-web-widget@main/dist/treeflow-widget.js"></script>
+<!-- Cargar desde CDN gratuito, con la versión fijada -->
+<script src="https://cdn.jsdelivr.net/gh/Mizar-Contasti/treeflow-web-widget@v1.3.11/dist/treeflow-widget.js"></script>
 <treeflow-widget 
-  endpoint="http://localhost:8000/message"
-  tree-id="6c295eca-5a9f-4588-b1db-1cf5c05f05ee"
+  endpoint="https://<tu-backend>/message"
+  tree-id="00000000-aaaa-bbbb-cccc-111111111111"
   title="Mi Asistente"
   primary-color="#2563eb">
 </treeflow-widget>
@@ -34,7 +34,7 @@ Widget de chat embebible para TreeFlow - **Integración en 2 líneas de código*
 ```html
 <treeflow-widget 
   endpoint="http://localhost:8000/message"          <!-- URL de tu TreeFlow backend -->
-  tree-id="6c295eca-5a9f-4588-b1db-1cf5c05f05ee"   <!-- ID de tu bot específico -->
+  tree-id="00000000-aaaa-bbbb-cccc-111111111111"   <!-- ID de tu bot específico -->
   title="Mi Chatbot"                                <!-- Título del widget -->
   primary-color="#2563eb"                           <!-- Color principal -->
   position="bottom-right"                           <!-- Posición: bottom-right, bottom-left -->
@@ -61,10 +61,10 @@ Widget de chat embebible para TreeFlow - **Integración en 2 líneas de código*
     <p>Contenido de tu página...</p>
 
     <!-- TreeFlow Widget - Solo estas 2 líneas -->
-    <script src="https://cdn.jsdelivr.net/gh/Mizar-Contasti/treeflow-web-widget@main/dist/treeflow-widget.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/Mizar-Contasti/treeflow-web-widget@v1.3.11/dist/treeflow-widget.js"></script>
     <treeflow-widget 
-      endpoint="http://localhost:8000/message"
-      tree-id="6c295eca-5a9f-4588-b1db-1cf5c05f05ee"
+      endpoint="https://<tu-backend>/message"
+      tree-id="00000000-aaaa-bbbb-cccc-111111111111"
       title="Asistente Virtual"
       primary-color="#2563eb"
       auto-welcome="true">
@@ -349,6 +349,22 @@ Al tocar el icono el chat se abre con una animación, y al minimizarlo vuelve al
 El icono reaparece con un pequeño rebote al cerrar. La primera apertura de la página (*Abrir al iniciar*) no se anima. Quien tiene activado "reducir movimiento" en su sistema (`prefers-reduced-motion`) no ve ninguna animación. Al cerrar, la ventana sigue en pantalla mientras dura la animación y sólo entonces desaparece.
 
 El tamaño se reevalúa al redimensionar o girar el dispositivo. Un chat que se abrió a pantalla completa por ser un teléfono vuelve a ventana si la pantalla pasa a ser de tablet o de escritorio.
+
+## 🔐 Comunicación cifrada
+
+En el panel de Treeflow, *Canales → Web → Desarrollador*, activa **Encriptar comunicación**. No hay atributo HTML para esto: el widget lo recibe en la configuración remota (`GET /widget-config/{tree-id}`), con dos claves, `encryptCommunication` y `encryptionKey`.
+
+Con el cifrado activo, el widget:
+
+- cifra la petición a `/message` y descifra la respuesta, con AES-256-GCM y WebCrypto;
+- envía el sobre `{ "tree_id": "...", "encrypted": "<base64>" }`, donde `encrypted` es `base64(iv de 12 bytes ‖ cifrado ‖ etiqueta)`;
+- liga cada mensaje a su árbol con datos autenticados adicionales (AAD): `<tree_id>|req` en la petición y `<tree_id>|resp` en la respuesta;
+- si el backend responde 400 con `detail: "clave_obsoleta"` (la clave se rotó o el cifrado se apagó), recarga su configuración y reintenta una vez.
+
+Requisitos y límites:
+
+- WebCrypto sólo existe en **HTTPS o `localhost`**. Sin WebCrypto el widget muestra un error y **no envía** el mensaje.
+- La clave llega al navegador, así que cualquiera que abra las herramientas de desarrollo puede verla. Esto oculta el contenido a quien sólo mira el tráfico de red o los registros, pero **no sustituye a HTTPS**.
 
 ## 🔒 Consideraciones de Seguridad
 

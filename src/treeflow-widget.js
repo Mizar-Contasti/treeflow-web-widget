@@ -1,6 +1,7 @@
 import { WIDGET_STYLES } from './styles.js';
 import { ICONS, getIconHtml } from './icons.js';
 import { renderRichMessage, conFormato } from './renderers.js';
+import { hayWebCrypto, cifrar, descifrar } from './cifrado.js';
 import {
   getDeviceType, resolveMaximizeDevices, resolveHeaderButtons, opensFullscreen, getOpenSize, getLauncherSize,
   OPEN_MS, CLOSE_MS,
@@ -217,7 +218,7 @@ class TreeFlowWidget extends HTMLElement {
     return normalized;
   }
 
-  async loadRemoteConfig() {
+  async loadRemoteConfig({ forzar = false } = {}) {
     const treeId = this.getAttribute('tree-id') || this.getAttribute('tree_id');
     const endpointAttr = this.getAttribute('endpoint');
     if (!treeId || !endpointAttr) return;
@@ -234,7 +235,11 @@ class TreeFlowWidget extends HTMLElement {
     const timeoutId = controller ? setTimeout(() => controller.abort(), 2500) : null;
 
     try {
-      const res = await fetch(`${origin}/widget-config/${treeId}`, controller ? { signal: controller.signal } : {});
+      // `forzar`: tras una clave rotada, la config cacheada (30 s) trae la vieja.
+      const url = `${origin}/widget-config/${treeId}${forzar ? `?v=${Date.now()}` : ''}`;
+      const opciones = controller ? { signal: controller.signal } : {};
+      if (forzar) opciones.cache = 'reload';
+      const res = await fetch(url, opciones);
       if (res.ok) {
         const data = await res.json();
         this.remoteConfig = this.normalizeRemoteConfig(data);
@@ -310,6 +315,9 @@ class TreeFlowWidget extends HTMLElement {
       fileUpload: getBool('file-upload', 'fileUpload', true),
       microphone: getBool('microphone', 'microphone', true),
       debug: getBool('debug', 'debug', false),
+      // "Encriptar comunicación": sólo llega por config remota.
+      encryptCommunication: !!raw('encryptCommunication') && !!raw('encryptionKey'),
+      encryptionKey: raw('encryptionKey') || null,
       maxFileSize: parseInt(getVal('max-file-size', 'maxFileSize', 5 * 1024 * 1024)), // 5MB default
       responseDelay: getBool('response-delay', 'responseDelay', false),
       responseDelaySeconds: parseInt(getVal('response-delay-seconds', 'responseDelaySeconds', 1000)),
@@ -1811,6 +1819,55 @@ class TreeFlowWidget extends HTMLElement {
     }
   }
 
+  // El POST a /message, con "Encriptar comunicación" si el panel lo tiene activo.
+  // Si el backend dice `clave_obsoleta` (la clave se rotó o el cifrado se apagó
+  // desde que se cargó la config), la vuelve a pedir y lo intenta una vez más.
+  async postMensaje(requestPayload) {
+    let reintentado = false;
+    for (;;) {
+      const cifrado = this.config.encryptCommunication;
+      let cuerpo = requestPayload;
+      if (cifrado) {
+        if (!hayWebCrypto()) {
+          throw new Error('La comunicación cifrada requiere que la página use HTTPS');
+        }
+        cuerpo = {
+          tree_id: requestPayload.tree_id,
+          encrypted: await cifrar(this.config.encryptionKey, JSON.stringify(requestPayload), requestPayload.tree_id, 'req'),
+        };
+      }
+
+      const response = await fetch(this.config.endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(cuerpo)
+      });
+
+      if (cifrado && !reintentado && response.status === 400) {
+        const detalle = await response.json().catch(() => null);
+        if (detalle && detalle.detail === 'clave_obsoleta') {
+          reintentado = true;
+          await this.loadRemoteConfig({ forzar: true });
+          this.config = this.getConfiguration();
+          continue;
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (cifrado && data && typeof data.encrypted === 'string') {
+        return JSON.parse(await descifrar(this.config.encryptionKey, data.encrypted, requestPayload.tree_id, 'resp'));
+      }
+      return data;
+    }
+  }
+
   async callBackend(message, isStartEvent = false, sttInfo = null) {
     this.config = this.getConfiguration();
 
@@ -1836,19 +1893,7 @@ class TreeFlowWidget extends HTMLElement {
       this.pendingRequest = JSON.parse(JSON.stringify(requestPayload));
     }
 
-    const response = await fetch(this.config.endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestPayload)
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
+    const data = await this.postMensaje(requestPayload);
 
     if (this.config.debug) {
       this.pendingResponse = JSON.parse(JSON.stringify(data));
@@ -1890,19 +1935,7 @@ class TreeFlowWidget extends HTMLElement {
       this.pendingRequest = JSON.parse(JSON.stringify(requestPayload));
     }
 
-    const response = await fetch(this.config.endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestPayload)
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
+    const data = await this.postMensaje(requestPayload);
 
     if (this.config.debug) {
       this.pendingResponse = JSON.parse(JSON.stringify(data));
@@ -2008,19 +2041,7 @@ class TreeFlowWidget extends HTMLElement {
       this.pendingRequest = JSON.parse(JSON.stringify(requestPayload));
     }
 
-    const response = await fetch(this.config.endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestPayload)
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
+    const data = await this.postMensaje(requestPayload);
 
     if (this.config.debug) {
       this.pendingResponse = JSON.parse(JSON.stringify(data));
