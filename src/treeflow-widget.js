@@ -1059,6 +1059,12 @@ class TreeFlowWidget extends HTMLElement {
     messageInput.value = '';
     this.autoResize(messageInput);
 
+    await this.enviarYResponder(message);
+  }
+
+  /** Manda el texto al bot y pinta lo que conteste; la burbuja del visitante,
+   *  si se pinta, la pone quien llama. */
+  async enviarYResponder(message) {
     try {
       this.showTyping();
 
@@ -2006,12 +2012,18 @@ class TreeFlowWidget extends HTMLElement {
 
   /** Manda un mensaje como si lo hubiera escrito el visitante.
    *
-   *  También estaba documentada en el panel y tampoco existía.
+   *  También estaba documentada en el panel y tampoco existía. Con
+   *  `{ oculto: true }` el mensaje llega al bot pero su burbuja no se pinta:
+   *  la página arranca la conversación —un «hola» al iniciar sesión, junto
+   *  con `injectContext`— y el visitante sólo ve la bienvenida.
    */
-  sendUserMessage(texto) {
+  sendUserMessage(texto, { oculto = false } = {}) {
     if (!texto || !String(texto).trim()) return;
     if (this.chatState === 'closed') {
       this.open();
+    }
+    if (oculto) {
+      return this.enviarYResponder(String(texto).trim());
     }
     return this.sendMessage(String(texto));
   }

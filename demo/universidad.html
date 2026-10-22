@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal Institucional · Demo de Treeflow</title>
+    <!--
+      Demo: un portal escolar que, al iniciar sesión, recibe del login un payload con los datos
+      de la persona y un token, y se los pasa al widget de Treeflow como variables de la
+      conversación. El bot las usa en su bienvenida ({$nombre}, {$puesto}…) y quedan guardadas
+      en la conversación.
+
+      Se abre con el bot en la dirección (y el backend, si no es localhost:8000):
+        demo/universidad.html?tree=<tree_id>&api=http://localhost:8000
+      Los datos del payload de ejemplo son inventados; el cuadro «Payload del login» acepta el
+      de verdad.
+    -->
+    <style>
+        :root {
+            --fondo: #f3f5f9;
+            --tarjeta: #ffffff;
+            --texto: #1c2433;
+            --suave: #5b6578;
+            --borde: #dfe4ec;
+            --marca: #7a1f3d;
+            --marca-suave: #f6e9ee;
+            --codigo: #0f172a;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--fondo);
+            color: var(--texto);
+        }
+
+        header {
+            background: var(--marca);
+            color: #fff;
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        header h1 { margin: 0; font-size: 18px; font-weight: 600; }
+        header small { opacity: .8; }
+
+        main { max-width: 1080px; margin: 0 auto; padding: 24px 16px 120px; }
+
+        .tarjeta {
+            background: var(--tarjeta);
+            border: 1px solid var(--borde);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .login { max-width: 420px; margin: 32px auto; }
+        .login h2 { margin-top: 0; }
+
+        label { display: block; font-size: 13px; color: var(--suave); margin: 12px 0 4px; }
+
+        input, textarea {
+            width: 100%;
+            padding: 9px 10px;
+            border: 1px solid var(--borde);
+            border-radius: 6px;
+            font: inherit;
+        }
+
+        textarea { font-family: Consolas, monospace; font-size: 12px; min-height: 220px; }
+
+        button {
+            border: 0;
+            border-radius: 6px;
+            padding: 10px 16px;
+            font: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            background: var(--marca);
+            color: #fff;
+        }
+
+        button.secundario { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.6); }
+
+        .login button { width: 100%; margin-top: 18px; }
+
+        details { margin-top: 16px; font-size: 13px; }
+        summary { cursor: pointer; color: var(--suave); }
+
+        .aviso { font-size: 12px; color: var(--suave); margin-top: 10px; }
+        .error { color: #b42318; font-size: 13px; margin-top: 10px; }
+
+        .bienvenida h2 { margin: 0 0 4px; }
+        .bienvenida p { margin: 0; color: var(--suave); }
+
+        .rejilla {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .sistema { display: flex; gap: 12px; align-items: flex-start; }
+
+        .sistema .icono {
+            flex: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: grid;
+            place-items: center;
+            background: var(--marca-suave);
+            color: var(--marca);
+            font-weight: 700;
+        }
+
+        .sistema strong { display: block; font-size: 14px; }
+        .sistema span { font-size: 12px; color: var(--suave); }
+
+        h3 { margin: 28px 0 8px; font-size: 15px; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--borde); vertical-align: top; }
+        th { color: var(--suave); font-weight: 600; }
+        td code { background: var(--marca-suave); color: var(--marca); padding: 1px 5px; border-radius: 4px; }
+        td.valor { word-break: break-word; }
+
+        .oculto { display: none !important; }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div>
+            <h1>Portal Institucional</h1>
+            <small>Demo de integración con Treeflow</small>
+        </div>
+        <button id="salir" class="secundario oculto" type="button">Cerrar sesión</button>
+    </header>
+
+    <main>
+        <!-- 1. El login del portal -->
+        <section id="pantallaLogin" class="tarjeta login">
+            <h2>Iniciar sesión</h2>
+            <form id="formLogin">
+                <label for="usuario">Correo institucional</label>
+                <input id="usuario" value="ana.lopez@universidad-demo.edu.mx" autocomplete="off">
+                <label for="contrasena">Contraseña</label>
+                <input id="contrasena" type="password" value="demo" autocomplete="off">
+                <button type="submit">Entrar</button>
+            </form>
+            <p class="aviso">Es una demo: cualquier dato entra y el login responde con el payload de abajo.</p>
+            <details>
+                <summary>Payload del login (se puede pegar el de verdad)</summary>
+                <textarea id="payload" spellcheck="false"></textarea>
+            </details>
+            <p id="errorLogin" class="error oculto"></p>
+        </section>
+
+        <!-- 2. El portal ya con sesión -->
+        <section id="pantallaPortal" class="oculto">
+            <div class="tarjeta bienvenida">
+                <h2 id="saludo"></h2>
+                <p id="detalle"></p>
+            </div>
+
+            <h3>Tus sistemas</h3>
+            <div id="sistemas" class="rejilla"></div>
+
+            <h3>Lo que el portal le pasó a Treeflow</h3>
+            <div class="tarjeta">
+                <table>
+                    <thead>
+                        <tr><th>Parámetro</th><th>Sale de</th><th>Valor</th></tr>
+                    </thead>
+                    <tbody id="tablaParametros"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="../dist/treeflow-widget.js"></script>
+    <script>
+        // ── Configuración ─────────────────────────────────────────────────────
+        // ?tree=<tree_id>&api=<url del backend> en la dirección.
+        const consulta = new URLSearchParams(location.search);
+        const API = (consulta.get('api') || 'http://localhost:8000').replace(/\/$/, '');
+        const TREE_ID = consulta.get('tree');
+
+        // ── Los parámetros que viajan a Treeflow ─────────────────────────────
+        // `parametro` es el nombre con el que el bot lo usa ({$nombre}); `desde`, dónde está en
+        // la respuesta del login (`data.…`) o dentro del token (`token.…`); `valor`, cómo se
+        // arregla antes de mandarlo. Para añadir uno, una línea más aquí.
+        const PARAMETROS = [
+            { parametro: 'nombre', desde: 'data.name', valor: (v) => titulo(String(v).split(/\s+/)[0]) },
+            { parametro: 'nombre_completo', desde: 'data.name', valor: titulo },
+            { parametro: 'correo', desde: 'data.email' },
+            { parametro: 'enlace', desde: 'data.enlace' },
+            { parametro: 'puesto', desde: 'data.jobTitle' },
+            { parametro: 'id_area', desde: 'data.idArea' },
+            { parametro: 'sistemas', desde: 'data.systems', valor: (s) => s.map((x) => x.system).join(', ') },
+            { parametro: 'num_sistemas', desde: 'data.systems', valor: (s) => String(s.length) },
+            { parametro: 'id_usuario_portal', desde: 'token.sub' },
+            { parametro: 'sesion_expira', desde: 'token.exp', valor: (exp) => new Date(exp * 1000).toISOString() },
+        ];
+
+        /** Del payload del login al contexto de Treeflow: { parametro: valor }. */
+        function construirContexto(respuesta) {
+            // El token sólo se lee (sus datos), no se verifica ni se manda: es la credencial del
+            // portal y no le sirve a Treeflow.
+            const fuente = { data: respuesta.data || {}, token: leerToken(respuesta.token) };
+            const contexto = {};
+            for (const { parametro, desde, valor } of PARAMETROS) {
+                const crudo = desde.split('.').reduce((o, k) => (o == null ? undefined : o[k]), fuente);
+                if (crudo === undefined || crudo === null || crudo === '') {
+                    console.warn(`[Treeflow] ${parametro}: no viene ${desde}, no se manda`);
+                    continue;
+                }
+                contexto[parametro] = valor ? valor(crudo) : String(crudo);
+                console.log(`[Treeflow] parámetro %c${parametro}%c = %o  ← ${desde}`,
+                    'color:#7a1f3d;font-weight:bold', '', contexto[parametro]);
+            }
+            return contexto;
+        }
+
+        /** Abre el chat con las variables ya puestas y arranca la conversación con un «hola» que
+         *  no se pinta: lo primero que ve la persona es la bienvenida con sus datos. */
+        async function abrirTreeflow(contexto) {
+            const widget = document.createElement('treeflow-widget');
+            widget.setAttribute('endpoint', `${API}/message`);
+            widget.setAttribute('tree-id', TREE_ID);
+            widget.setAttribute('title', 'Asistente del portal');
+            widget.setAttribute('subtitle', 'En línea');
+            widget.setAttribute('debug', 'true');
+            document.body.appendChild(widget);
+            await listo(widget);
+
+            widget.injectContext(contexto);
+            console.log('[Treeflow] contexto inyectado:', widget.injectedContext);
+            await widget.sendUserMessage('hola', { oculto: true });
+            console.log('[Treeflow] «hola» enviado sin pintar, con %d parámetros', Object.keys(contexto).length);
+            return widget;
+        }
+
+        // ── El login simulado del portal ──────────────────────────────────────
+        // El portal de verdad hace su petición y recibe { data, token }; aquí sale del cuadro de texto.
+        async function loginDelPortal() {
+            await new Promise((r) => setTimeout(r, 400));
+            return JSON.parse(document.getElementById('payload').value);
+        }
+
+        let widgetActual = null;
+
+        document.getElementById('formLogin').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const error = document.getElementById('errorLogin');
+            error.classList.add('oculto');
+            if (!TREE_ID) {
+                error.textContent = 'Falta el bot: abre la página con ?tree=<id del bot> en la dirección.';
+                error.classList.remove('oculto');
+                return;
+            }
+            let respuesta;
+            try {
+                respuesta = await loginDelPortal();
+            } catch (err) {
+                error.textContent = `El payload no es un JSON válido: ${err.message}`;
+                error.classList.remove('oculto');
+                return;
+            }
+
+            console.log('[Portal] respuesta del login:', respuesta);
+            console.log('[Portal] token:', respuesta.token);
+            console.log('[Portal] datos dentro del token:', leerToken(respuesta.token));
+
+            const contexto = construirContexto(respuesta);
+            console.table(contexto);
+            pintarPortal(respuesta, contexto);
+            widgetActual = await abrirTreeflow(contexto);
+        });
+
+        document.getElementById('salir').addEventListener('click', () => {
+            // Un widget nuevo es una sesión nueva: al volver a entrar, otra conversación.
+            if (widgetActual) widgetActual.remove();
+            widgetActual = null;
+            document.getElementById('pantallaPortal').classList.add('oculto');
+            document.getElementById('salir').classList.add('oculto');
+            document.getElementById('pantallaLogin').classList.remove('oculto');
+            console.clear();
+        });
+
+        // ── Pintar el portal ──────────────────────────────────────────────────
+        function pintarPortal(respuesta, contexto) {
+            const data = respuesta.data || {};
+            document.getElementById('saludo').textContent = `Hola, ${contexto.nombre || 'bienvenido'}`;
+            document.getElementById('detalle').textContent =
+                [contexto.nombre_completo, data.jobTitle, data.email].filter(Boolean).join(' · ');
+
+            const sistemas = document.getElementById('sistemas');
+            sistemas.replaceChildren(...(data.systems || []).map((s) => {
+                const tarjeta = document.createElement('div');
+                tarjeta.className = 'tarjeta sistema';
+                const icono = document.createElement('div');
+                icono.className = 'icono';
+                icono.textContent = (s.system || '?').charAt(0);
+                const texto = document.createElement('div');
+                const nombre = document.createElement('strong');
+                nombre.textContent = s.system;
+                const desc = document.createElement('span');
+                desc.textContent = s.description || '';
+                texto.append(nombre, desc);
+                tarjeta.append(icono, texto);
+                return tarjeta;
+            }));
+
+            const tabla = document.getElementById('tablaParametros');
+            tabla.replaceChildren(...PARAMETROS.filter((p) => p.parametro in contexto).map((p) => {
+                const fila = document.createElement('tr');
+                const nombre = document.createElement('td');
+                const codigo = document.createElement('code');
+                codigo.textContent = p.parametro;
+                nombre.append(codigo);
+                const desde = document.createElement('td');
+                desde.textContent = p.desde;
+                const valor = document.createElement('td');
+                valor.className = 'valor';
+                valor.textContent = contexto[p.parametro];
+                fila.append(nombre, desde, valor);
+                return fila;
+            }));
+
+            document.getElementById('pantallaLogin').classList.add('oculto');
+            document.getElementById('pantallaPortal').classList.remove('oculto');
+            document.getElementById('salir').classList.remove('oculto');
+        }
+
+        // ── Utilidades ────────────────────────────────────────────────────────
+        function titulo(texto) {
+            return String(texto).toLowerCase().replace(/(^|\s)(\p{L})/gu, (m, esp, letra) => esp + letra.toUpperCase());
+        }
+
+        /** Los datos de un JWT (la parte del medio), sin verificar la firma. */
+        function leerToken(token) {
+            try {
+                const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+                const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+                return JSON.parse(new TextDecoder().decode(bytes));
+            } catch (e) {
+                return {};
+            }
+        }
+
+        function base64url(objeto) {
+            const bytes = new TextEncoder().encode(JSON.stringify(objeto));
+            return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        }
+
+        /** Espera a que el widget termine de pintarse (pide su configuración antes). */
+        function listo(widget) {
+            return new Promise((resolve, reject) => {
+                const inicio = Date.now();
+                (function mirar() {
+                    if (widget.shadowRoot && widget.shadowRoot.getElementById('messageInput')) return resolve();
+                    if (Date.now() - inicio > 10000) return reject(new Error('El widget no cargó'));
+                    setTimeout(mirar, 100);
+                })();
+            });
+        }
+
+        // ── Payload de ejemplo: la misma forma que el del portal, con datos inventados ──
+        function payloadDeEjemplo() {
+            const ahora = Math.floor(Date.now() / 1000);
+            const token = [
+                base64url({ typ: 'JWT', alg: 'HS256' }),
+                base64url({
+                    iss: 'https://portal.universidad-demo.edu.mx/portal/api/login',
+                    iat: ahora, exp: ahora + 3600, nbf: ahora,
+                    jti: 'demoJti0000000001', sub: '4821',
+                    prv: '0000000000000000000000000000000000000000',
+                }),
+                'firma-de-demo',
+            ].join('.');
+            const sistema = (system, description, url) => ({
+                system, description, image: `/images/portal/${url}.webp`, url,
+                color: 'primary', typeId: '1', sidebar: '[]', apiurl: url,
+            });
+            return {
+                data: {
+                    email: 'ana.lopez@universidad-demo.edu.mx',
+                    enlace: '4821',
+                    name: 'ANA SOFÍA LÓPEZ RAMÍREZ',
+                    jobTitle: 'ALUMNO',
+                    idArea: '60',
+                    systems: [
+                        sistema('Mi Credencial', 'Visualiza tu credencial institucional', 'mi-credencial'),
+                        sistema('Fichas', 'Fichas de inscripción', 'fichas'),
+                        sistema('Control de Eventos', 'Asistencia a eventos por QR', 'control-eventos'),
+                        sistema('Paraescolares', 'Eventos culturales y deportivos', 'paraescolares'),
+                        sistema('Archivos', 'Gestor de documentos', 'archivos'),
+                        sistema('Notificaciones', 'Avisos del plantel', 'notificaciones'),
+                    ],
+                },
+                token,
+            };
+        }
+
+        document.getElementById('payload').value = JSON.stringify(payloadDeEjemplo(), null, 2);
+    </script>
+</body>
+
+</html>

@@ -245,9 +245,20 @@ widget.close();
 // Enviar mensaje como usuario
 widget.sendUserMessage("Hola");
 
+// Variables para el bot ({$nombre}, {$puesto}…): viajan con cada mensaje y
+// quedan como parámetros de la sesión desde el primero
+widget.injectContext({ nombre: "Ana", puesto: "ALUMNO" });
+
+// Arrancar la conversación sin pintar la burbuja del visitante: el bot
+// recibe el "hola" y sólo se ve su bienvenida
+widget.sendUserMessage("hola", { oculto: true });
+
 // Limpiar historial
 widget.clearHistory();
 ```
+
+`demo/universidad.html` es un ejemplo completo: un portal que, al iniciar sesión, pasa los
+datos de su login (y del token) al widget como variables y abre el chat con la bienvenida.
 
 ## 🏗️ Desarrollo Local
 
