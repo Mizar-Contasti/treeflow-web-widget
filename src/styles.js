@@ -1284,6 +1284,17 @@ export const WIDGET_STYLES = `
   }
 
   /* Message Wrappers & Avatars */
+  .message-aviso {
+    align-self: center;
+    max-width: 90%;
+    padding: 4px 10px;
+    font-size: 12px;
+    text-align: center;
+    color: #6b7280;
+    background: rgba(107, 114, 128, 0.08);
+    border-radius: 10px;
+  }
+
   .message-wrapper {
     display: flex;
     flex-direction: column;

@@ -70,6 +70,14 @@ class TreeFlowWidget extends HTMLElement {
     this.isPaused = false;
     this.recordingStream = null;
 
+    // Transferencia a un asesor humano: lo que escribe llega por el WebSocket del
+    // visitante, que se abre en cuanto el motor dice que la conversación pasó a una
+    // persona (`transfer` en la respuesta de /message).
+    this.socketAsesor = null;
+    this.reconexionesAsesor = 0;
+    this.temporizadorAsesor = null;
+    this.enAtencion = false;
+
     // Debug properties
     this.pendingRequest = null;
     this.pendingResponse = null;
@@ -142,6 +150,7 @@ class TreeFlowWidget extends HTMLElement {
 
   disconnectedCallback() {
     clearTimeout(this.animTimer);
+    this.cerrarSocketAsesor();
     if (this.onViewportResize) {
       window.removeEventListener('resize', this.onViewportResize);
       this.onViewportResize = null;
@@ -905,6 +914,9 @@ class TreeFlowWidget extends HTMLElement {
   // recargue. `close()` sigue siendo el que deja sólo el icono.
   destroy() {
     this.chatState = 'closed';
+    // Quitar el chat con una atención abierta es irse: el asesor (o el Chat Center)
+    // se entera con `visitor_left` en vez de seguir escribiendo a nadie.
+    if (this.enAtencion) this.avisarSalida();
     this.remove();
   }
 
@@ -1103,7 +1115,7 @@ class TreeFlowWidget extends HTMLElement {
   // In the actual file write, I must include them.
 
   // Updated addMessage to handle rich content
-  addMessage(content, sender, suggestions = [], debugData = null) {
+  addMessage(content, sender, suggestions = [], debugData = null, senderName = null) {
     const messagesContainer = this.shadowRoot.getElementById('messages');
     
     // Contenedor wrapper para agrupar cabecera (avatar + nombre) y burbuja
@@ -1125,6 +1137,12 @@ class TreeFlowWidget extends HTMLElement {
       nameSpan.textContent = 'Tú';
       header.appendChild(nameSpan);
       header.appendChild(avatar);
+    } else if (senderName) {
+      // Un asesor humano: su nombre y el icono de persona, no los del bot.
+      avatar.innerHTML = getIconHtml('person', 14, 'white');
+      nameSpan.textContent = senderName;
+      header.appendChild(avatar);
+      header.appendChild(nameSpan);
     } else {
       const effectiveIcon = this.config.botAvatarIcon || this.config.widgetIcon || 'cc-moon';
       avatar.innerHTML = getIconHtml(effectiveIcon, 14, 'white');
@@ -1142,7 +1160,7 @@ class TreeFlowWidget extends HTMLElement {
     let isRich = false;
     let richContent = null;
 
-    if (sender === 'bot' && typeof content === 'string') {
+    if (sender === 'bot' && !senderName && typeof content === 'string') {
       try {
         // Try to parse as JSON
         // We only attempt if it looks like JSON (starts with { or [)
@@ -1866,10 +1884,11 @@ class TreeFlowWidget extends HTMLElement {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
+      let data = await response.json();
       if (cifrado && data && typeof data.encrypted === 'string') {
-        return JSON.parse(await descifrar(this.config.encryptionKey, data.encrypted, requestPayload.tree_id, 'resp'));
+        data = JSON.parse(await descifrar(this.config.encryptionKey, data.encrypted, requestPayload.tree_id, 'resp'));
       }
+      this.revisarTransferencia(data);
       return data;
     }
   }
@@ -1919,7 +1938,130 @@ class TreeFlowWidget extends HTMLElement {
     if (respuesta && respuesta.type === 'html' && respuesta.value) {
       return [{ type: 'html', align: 'vertical', items: [{ html: String(respuesta.value) }] }];
     }
+    // Con la conversación en manos de un asesor el bot calla a propósito: el
+    // mensaje fue a la persona y no hay nada que pintar (antes salía "Sin respuesta").
+    if (!respuesta?.value && (data.transfer || data.matching_type === 'human_handoff')) {
+      return '';
+    }
     return respuesta?.value || data.message || 'Sin respuesta';
+  }
+
+  // ── Transferencia a un asesor humano ─────────────────────────────────────
+
+  /** Si la respuesta dice que la conversación pasó a una persona, abre el canal
+   *  por el que llega lo que escribe. */
+  revisarTransferencia(data) {
+    const estado = data && data.transfer && data.transfer.status;
+    if (estado === 'pending_human' || estado === 'human_active') {
+      this.enAtencion = true;
+      this.conectarAsesor();
+    }
+  }
+
+  /** La base del backend, sacada del endpoint de /message (sirve igual para
+   *  api.tree-flow.com/message que para una instancia en midominio.com/backend/message). */
+  baseDelBackend() {
+    const url = new URL(this.config.endpoint, window.location.href);
+    return url.origin + url.pathname.replace(/\/message\/?$/, '');
+  }
+
+  urlDelSocketAsesor() {
+    const base = this.baseDelBackend().replace(/^http/, 'ws');
+    const arbol = this.config.treeId ? `?tree_id=${encodeURIComponent(this.config.treeId)}` : '';
+    return `${base}/live-chat/ws/chat/${encodeURIComponent(this.sessionId)}${arbol}`;
+  }
+
+  conectarAsesor() {
+    if (this.socketAsesor && this.socketAsesor.readyState <= 1) return; // conectando o abierto
+    clearTimeout(this.temporizadorAsesor);
+    let socket;
+    try {
+      socket = new WebSocket(this.urlDelSocketAsesor());
+    } catch (e) {
+      console.error('[TreeFlow] No se pudo abrir el canal con el asesor:', e);
+      return;
+    }
+    this.socketAsesor = socket;
+
+    socket.onopen = () => { this.reconexionesAsesor = 0; };
+    socket.onmessage = (evento) => {
+      let datos;
+      try { datos = JSON.parse(evento.data); } catch (e) { return; }
+      if (datos && datos.type === 'ping' && socket.readyState === 1) {
+        socket.send(JSON.stringify({ type: 'pong' }));
+        return;
+      }
+      this.eventoDelAsesor(datos || {});
+    };
+    socket.onclose = () => {
+      if (this.socketAsesor === socket) this.socketAsesor = null;
+      // Mientras dure la atención se reintenta, con espera creciente, hasta 5 veces seguidas.
+      if (this.enAtencion && this.isConnected && this.reconexionesAsesor < 5) {
+        this.reconexionesAsesor += 1;
+        const espera = Math.min(1000 * Math.pow(2, this.reconexionesAsesor), 10000);
+        this.temporizadorAsesor = setTimeout(() => this.conectarAsesor(), espera);
+      }
+    };
+  }
+
+  eventoDelAsesor(datos) {
+    switch (datos.type) {
+      case 'agent_joined':
+        this.addAviso(`${datos.agent_name || 'Un asesor'} se unió a la conversación.`);
+        break;
+      case 'agent_message':
+        this.hideTyping();
+        if (datos.text) this.addMessage(datos.text, 'bot', [], null, datos.agent_name || 'Asesor');
+        break;
+      case 'agent_typing':
+        if (datos.is_typing) this.showTyping(); else this.hideTyping();
+        break;
+      case 'agent_left':
+        this.hideTyping();
+        this.addAviso(datos.message || 'El asesor salió de la conversación. Otro te atenderá enseguida.');
+        break;
+      case 'transfer_ended':
+        this.hideTyping();
+        this.addAviso(datos.message || 'La atención con el asesor ha finalizado.');
+        this.enAtencion = false;
+        this.cerrarSocketAsesor();
+        break;
+      default:
+        break;
+    }
+  }
+
+  cerrarSocketAsesor() {
+    clearTimeout(this.temporizadorAsesor);
+    const socket = this.socketAsesor;
+    this.socketAsesor = null;
+    if (socket) {
+      try { socket.close(); } catch (e) { /* ya cerrado */ }
+    }
+  }
+
+  avisarSalida() {
+    this.enAtencion = false;
+    this.cerrarSocketAsesor();
+    try {
+      fetch(`${this.baseDelBackend()}/live-chat/visitor/${encodeURIComponent(this.sessionId)}/leave`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tree_id: this.config.treeId }),
+        keepalive: true,
+      }).catch(() => {});
+    } catch (e) { /* sin red: el asesor la cerrará a mano */ }
+  }
+
+  /** Una línea de aviso en medio de la conversación (se unió un asesor, terminó la atención). */
+  addAviso(texto) {
+    const messagesContainer = this.shadowRoot.getElementById('messages');
+    if (!messagesContainer) return;
+    const aviso = document.createElement('div');
+    aviso.className = 'message-aviso';
+    aviso.textContent = texto;
+    messagesContainer.appendChild(aviso);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
   }
 
   async callBackendEvent(eventName) {
