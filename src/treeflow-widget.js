@@ -28,6 +28,10 @@ const prefersReducedMotion = () =>
   typeof window !== 'undefined' && typeof window.matchMedia === 'function'
   && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+// Lo que acepta el backend (POST /attachments/upload): tipos y tamaño máximo.
+const TIPOS_DE_ADJUNTO = '.jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov,.pdf,.doc,.docx,.xls,.xlsx';
+const MAX_ADJUNTO_BYTES = 1024 * 1024;
+
 class TreeFlowWidget extends HTMLElement {
   constructor() {
     super();
@@ -538,7 +542,7 @@ class TreeFlowWidget extends HTMLElement {
               ${ICONS.SEND}
             </button>
             
-            <input type="file" class="file-input" id="fileInput" accept="*/*">
+            <input type="file" class="file-input" id="fileInput" accept="${TIPOS_DE_ADJUNTO}">
           </div>
           
           <!-- Recording Area (hidden by default, replaces normal input) -->
@@ -1079,7 +1083,7 @@ class TreeFlowWidget extends HTMLElement {
 
   /** Manda el texto al bot y pinta lo que conteste; la burbuja del visitante,
    *  si se pinta, la pone quien llama. */
-  async enviarYResponder(message) {
+  async enviarYResponder(message, adjuntos = null) {
     try {
       this.showTyping();
 
@@ -1087,7 +1091,7 @@ class TreeFlowWidget extends HTMLElement {
         await this.delay(this.config.responseDelaySeconds);
       }
 
-      const response = await this.callBackend(message);
+      const response = await this.callBackend(message, false, null, adjuntos);
       this.hideTyping();
 
       if (response.message) {
@@ -1300,29 +1304,50 @@ class TreeFlowWidget extends HTMLElement {
 
   // ... (Copying handleFileUpload, handleMicrophone, etc.)
 
+  // Sube el archivo a Treeflow y lo manda al bot como un mensaje con `attachments`,
+  // igual que el widget de la app: así llega a la conversación, a la mesa de ayuda y
+  // al webhook de un sistema externo. Antes sólo pintaba la burbuja y una respuesta
+  // inventada: el archivo no salía del navegador.
   async handleFileUpload(event) {
-    const file = event.target.files[0];
+    const input = event.target;
+    const file = input.files && input.files[0];
+    input.value = '';
     if (!file) return;
 
-    if (file.size > this.config.maxFileSize) {
-      this.addMessage(`El archivo es demasiado grande. Tamaño máximo: ${this.formatFileSize(this.config.maxFileSize)}`, 'bot');
+    const limite = Math.min(this.config.maxFileSize || MAX_ADJUNTO_BYTES, MAX_ADJUNTO_BYTES);
+    if (file.size > limite) {
+      this.addMessage(`El archivo es demasiado grande. Tamaño máximo: ${this.formatFileSize(limite)}`, 'bot');
       return;
     }
 
-    this.addMessage(`📎 Archivo enviado: ${file.name}`, 'user');
-
+    this.addMessage(`📎 ${file.name}`, 'user');
+    let adjunto;
     try {
       this.showTyping();
-      await this.delay(1000);
-      this.hideTyping();
-      this.addMessage('He recibido tu archivo. ¿En qué puedo ayudarte con él?', 'bot');
+      adjunto = await this.subirAdjunto(file);
     } catch (error) {
       this.hideTyping();
-      console.error('Error uploading file:', error);
-      this.addMessage('Error al procesar el archivo.', 'bot');
+      console.error('[TreeFlow] Error al subir el archivo:', error);
+      this.addMessage(error.message || 'No se pudo enviar el archivo.', 'bot');
+      return;
     }
+    this.hideTyping();
+    await this.enviarYResponder('', [adjunto]);
+  }
 
-    event.target.value = '';
+  async subirAdjunto(file) {
+    const datos = new FormData();
+    datos.append('file', file);
+    datos.append('tree_id', this.config.treeId);
+    datos.append('session_id', this.sessionId);
+    datos.append('source', 'web');
+    const response = await fetch(`${this.baseDelBackend()}/attachments/upload`, { method: 'POST', body: datos });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      const detalle = typeof error.detail === 'string' ? error.detail : '';
+      throw new Error(detalle || 'No se pudo enviar el archivo.');
+    }
+    return response.json();
   }
 
   async handleMicrophone() {
@@ -1896,7 +1921,7 @@ class TreeFlowWidget extends HTMLElement {
     }
   }
 
-  async callBackend(message, isStartEvent = false, sttInfo = null) {
+  async callBackend(message, isStartEvent = false, sttInfo = null, adjuntos = null) {
     this.config = this.getConfiguration();
 
     if (!this.config.endpoint) {
@@ -1915,6 +1940,9 @@ class TreeFlowWidget extends HTMLElement {
 
     if (sttInfo) {
       requestPayload.stt_info = sttInfo;
+    }
+    if (adjuntos && adjuntos.length > 0) {
+      requestPayload.attachments = adjuntos;
     }
 
     if (this.config.debug) {
