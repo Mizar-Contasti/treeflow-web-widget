@@ -232,9 +232,12 @@ class TreeFlowWidget extends HTMLElement {
     const endpointAttr = this.getAttribute('endpoint');
     if (!treeId || !endpointAttr) return;
 
-    let origin;
+    // La base del backend, no sólo el origen: en una instancia la API va en
+    // midominio.com/backend y con el origen se pedía la config al frontend.
+    let base;
     try {
-      origin = new URL(endpointAttr, window.location.href).origin;
+      const url = new URL(endpointAttr, window.location.href);
+      base = url.origin + url.pathname.replace(/\/message\/?$/, '');
     } catch (e) {
       return;
     }
@@ -245,7 +248,7 @@ class TreeFlowWidget extends HTMLElement {
 
     try {
       // `forzar`: tras una clave rotada, la config cacheada (30 s) trae la vieja.
-      const url = `${origin}/widget-config/${treeId}${forzar ? `?v=${Date.now()}` : ''}`;
+      const url = `${base}/widget-config/${treeId}${forzar ? `?v=${Date.now()}` : ''}`;
       const opciones = controller ? { signal: controller.signal } : {};
       if (forzar) opciones.cache = 'reload';
       const res = await fetch(url, opciones);

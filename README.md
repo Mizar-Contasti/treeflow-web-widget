@@ -6,7 +6,7 @@ Widget de chat embebible para TreeFlow - **Integración en 2 líneas de código*
 
 ```html
 <!-- Cargar desde CDN gratuito, con la versión fijada -->
-<script src="https://cdn.jsdelivr.net/gh/Mizar-Contasti/treeflow-web-widget@v1.3.13/dist/treeflow-widget.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/Mizar-Contasti/treeflow-web-widget@v1.3.14/dist/treeflow-widget.js"></script>
 <treeflow-widget 
   endpoint="https://<tu-backend>/message"
   tree-id="00000000-aaaa-bbbb-cccc-111111111111"
@@ -61,7 +61,7 @@ Widget de chat embebible para TreeFlow - **Integración en 2 líneas de código*
     <p>Contenido de tu página...</p>
 
     <!-- TreeFlow Widget - Solo estas 2 líneas -->
-    <script src="https://cdn.jsdelivr.net/gh/Mizar-Contasti/treeflow-web-widget@v1.3.13/dist/treeflow-widget.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/Mizar-Contasti/treeflow-web-widget@v1.3.14/dist/treeflow-widget.js"></script>
     <treeflow-widget 
       endpoint="https://<tu-backend>/message"
       tree-id="00000000-aaaa-bbbb-cccc-111111111111"
