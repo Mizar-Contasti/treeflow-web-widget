@@ -5,8 +5,8 @@ Widget de chat embebible para TreeFlow - **Integración en 2 líneas de código*
 ## ⚡ Integración Súper Simple
 
 ```html
-<!-- Cargar desde CDN gratuito, con la versión fijada -->
-<script src="https://cdn.jsdelivr.net/gh/Mizar-Contasti/treeflow-web-widget@v1.3.15/dist/treeflow-widget.js"></script>
+<!-- Cargar desde CDN gratuito: @latest es la última versión publicada -->
+<script src="https://cdn.jsdelivr.net/gh/Mizar-Contasti/treeflow-web-widget@latest/dist/treeflow-widget.js"></script>
 <treeflow-widget 
   endpoint="https://<tu-backend>/message"
   tree-id="00000000-aaaa-bbbb-cccc-111111111111"
@@ -16,6 +16,11 @@ Widget de chat embebible para TreeFlow - **Integración en 2 líneas de código*
 ```
 
 **¡Eso es todo!** 🎉 El widget aparecerá automáticamente como un botón flotante.
+
+**Versión.** `@latest` carga siempre la última versión publicada: no hay que tocar la página cuando sale una
+nueva. jsDelivr la cachea (hasta ~12 h en el CDN y una semana en el navegador del visitante), así que un
+arreglo no llega a todos al instante; se puede purgar en `https://purge.jsdelivr.net/gh/Mizar-Contasti/treeflow-web-widget@latest/dist/treeflow-widget.js`.
+Para decidir tú cuándo cambia, fija una versión: `@v1.3.15`. Nunca `@main`: lo que está en main no está publicado.
 
 ## 🔧 Configuración de Endpoint
 
@@ -61,7 +66,7 @@ Widget de chat embebible para TreeFlow - **Integración en 2 líneas de código*
     <p>Contenido de tu página...</p>
 
     <!-- TreeFlow Widget - Solo estas 2 líneas -->
-    <script src="https://cdn.jsdelivr.net/gh/Mizar-Contasti/treeflow-web-widget@v1.3.15/dist/treeflow-widget.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/Mizar-Contasti/treeflow-web-widget@latest/dist/treeflow-widget.js"></script>
     <treeflow-widget 
       endpoint="https://<tu-backend>/message"
       tree-id="00000000-aaaa-bbbb-cccc-111111111111"
