@@ -20,7 +20,7 @@ Widget de chat embebible para TreeFlow - **Integración en 2 líneas de código*
 **Versión.** `@latest` carga siempre la última versión publicada: no hay que tocar la página cuando sale una
 nueva. jsDelivr la cachea (hasta ~12 h en el CDN y una semana en el navegador del visitante), así que un
 arreglo no llega a todos al instante; se puede purgar en `https://purge.jsdelivr.net/gh/Mizar-Contasti/treeflow-web-widget@latest/dist/treeflow-widget.js`.
-Para decidir tú cuándo cambia, fija una versión: `@v1.3.15`. Nunca `@main`: lo que está en main no está publicado.
+Para decidir tú cuándo cambia, fija una versión: `@v1.3.16`. Nunca `@main`: lo que está en main no está publicado.
 
 ## 🔧 Configuración de Endpoint
 

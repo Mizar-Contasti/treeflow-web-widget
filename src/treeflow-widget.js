@@ -1999,7 +1999,8 @@ class TreeFlowWidget extends HTMLElement {
   urlDelSocketAsesor() {
     const base = this.baseDelBackend().replace(/^http/, 'ws');
     const arbol = this.config.treeId ? `?tree_id=${encodeURIComponent(this.config.treeId)}` : '';
-    return `${base}/live-chat/ws/chat/${encodeURIComponent(this.sessionId)}${arbol}`;
+    // El WebSocket del visitante va en /ws/chat, sin el /live-chat de las rutas HTTP.
+    return `${base}/ws/chat/${encodeURIComponent(this.sessionId)}${arbol}`;
   }
 
   conectarAsesor() {
