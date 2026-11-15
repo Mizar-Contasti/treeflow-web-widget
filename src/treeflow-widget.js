@@ -32,6 +32,22 @@ const prefersReducedMotion = () =>
 const TIPOS_DE_ADJUNTO = '.jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov,.pdf,.doc,.docx,.xls,.xlsx';
 const MAX_ADJUNTO_BYTES = 1024 * 1024;
 
+// Arrastrar y soltar un archivo en el chat (v1.3.17): el aviso mientras se arrastra y el error de
+// un tipo que no se acepta, en el idioma del widget.
+const TEXTOS_DE_ARRASTRE = {
+  es: { soltar: 'Suelta el archivo para enviarlo', tipo: 'Ese tipo de archivo no se acepta.' },
+  en: { soltar: 'Drop the file to send it', tipo: 'That file type is not accepted.' },
+  pt: { soltar: 'Solte o arquivo para enviá-lo', tipo: 'Esse tipo de arquivo não é aceito.' },
+  fr: { soltar: 'Déposez le fichier pour l’envoyer', tipo: 'Ce type de fichier n’est pas accepté.' },
+  de: { soltar: 'Datei zum Senden hier ablegen', tipo: 'Dieser Dateityp wird nicht akzeptiert.' },
+  it: { soltar: 'Rilascia il file per inviarlo', tipo: 'Questo tipo di file non è accettato.' },
+};
+
+function tipoAceptado(file) {
+  const nombre = (file && file.name ? file.name : '').toLowerCase();
+  return TIPOS_DE_ADJUNTO.split(',').some((ext) => nombre.endsWith(ext));
+}
+
 class TreeFlowWidget extends HTMLElement {
   constructor() {
     super();
@@ -458,6 +474,26 @@ class TreeFlowWidget extends HTMLElement {
           ${themeVars}
           ${positionStyles}
         }
+
+        .aviso-arrastre {
+          display: none;
+          position: absolute;
+          inset: 0;
+          z-index: 50;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          padding: 24px;
+          border-radius: inherit;
+          border: 2px dashed var(--tfw-primary-color, #f97316);
+          background: rgba(255, 255, 255, 0.92);
+          color: var(--tfw-primary-color, #f97316);
+          font-weight: 600;
+          font-size: 15px;
+          pointer-events: none;
+        }
+        .chat-window.dark-mode .aviso-arrastre { background: rgba(17, 24, 39, 0.92); }
+        .chat-window.arrastrando .aviso-arrastre { display: flex; }
       </style>
       
       <button class="widget-button" id="toggleBtn" aria-label="Abrir chat">
@@ -465,6 +501,7 @@ class TreeFlowWidget extends HTMLElement {
       </button>
 
       <div class="chat-window ${this.chatState} ${this.config.darkMode ? 'dark-mode' : ''}" id="chatWindow">
+        <div class="aviso-arrastre" id="avisoArrastre" aria-hidden="true"></div>
         ${(this.config.widgetIcon && this.config.widgetIcon !== 'cc-moon') ? `<img src="${this.config.widgetIcon}" class="widget-icon-closed" alt="Widget Icon" onerror="this.classList.add('error')">` : ''}
         <span class="widget-icon-fallback">🌙</span>
         
@@ -662,7 +699,15 @@ class TreeFlowWidget extends HTMLElement {
     if (this.config.fileUpload) {
       fileBtn.addEventListener('click', () => fileInput.click());
       fileInput.addEventListener('change', (e) => this.handleFileUpload(e));
+      // Pegar una imagen o un archivo copiado (Ctrl+V) en la caja de texto.
+      messageInput.addEventListener('paste', (e) => {
+        const archivos = Array.from((e.clipboardData && e.clipboardData.files) || []);
+        if (!archivos.length) return;
+        e.preventDefault();
+        this.enviarArchivos(archivos);
+      });
     }
+    this.configurarArrastre(chatWindow);
 
     if (this.config.microphone) {
       micBtn.addEventListener('click', () => this.handleMicrophone());
@@ -1313,6 +1358,15 @@ class TreeFlowWidget extends HTMLElement {
     const file = input.files && input.files[0];
     input.value = '';
     if (!file) return;
+    await this.enviarArchivo(file);
+  }
+
+  /** Un archivo del clip, soltado en el chat o pegado: se sube y se manda al bot. */
+  async enviarArchivo(file) {
+    if (!tipoAceptado(file)) {
+      this.addMessage(this.textoDeArrastre('tipo'), 'bot');
+      return;
+    }
 
     const limite = Math.min(this.config.maxFileSize || MAX_ADJUNTO_BYTES, MAX_ADJUNTO_BYTES);
     if (file.size > limite) {
@@ -1333,6 +1387,55 @@ class TreeFlowWidget extends HTMLElement {
     }
     this.hideTyping();
     await this.enviarYResponder('', [adjunto]);
+  }
+
+  textoDeArrastre(clave) {
+    const idioma = String(this.config.lang || 'es').slice(0, 2).toLowerCase();
+    return (TEXTOS_DE_ARRASTRE[idioma] || TEXTOS_DE_ARRASTRE.es)[clave];
+  }
+
+  /** Varios archivos, uno detrás de otro (cada uno es un mensaje con su archivo). */
+  async enviarArchivos(archivos) {
+    for (const file of archivos.slice(0, 5)) {
+      await this.enviarArchivo(file);
+    }
+  }
+
+  /**
+   * Arrastrar archivos desde el ordenador y soltarlos en el chat abierto. Mientras se arrastra se
+   * ve un aviso encima. Sin «file-upload», el archivo soltado se ignora, pero igual se evita que el
+   * navegador lo abra y saque al visitante de la página.
+   */
+  configurarArrastre(chatWindow) {
+    if (!chatWindow) return;
+    let profundidad = 0;
+    const llevaArchivos = (e) => Array.from((e.dataTransfer && e.dataTransfer.types) || []).includes('Files');
+    const quitar = () => { profundidad = 0; chatWindow.classList.remove('arrastrando'); };
+    chatWindow.addEventListener('dragenter', (e) => {
+      if (!llevaArchivos(e) || this.chatState === 'closed') return;
+      e.preventDefault();
+      profundidad += 1;
+      if (this.config.fileUpload) chatWindow.classList.add('arrastrando');
+    });
+    chatWindow.addEventListener('dragover', (e) => {
+      if (!llevaArchivos(e) || this.chatState === 'closed') return;
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = this.config.fileUpload ? 'copy' : 'none';
+    });
+    chatWindow.addEventListener('dragleave', (e) => {
+      if (!llevaArchivos(e)) return;
+      profundidad = Math.max(0, profundidad - 1);
+      if (profundidad === 0) chatWindow.classList.remove('arrastrando');
+    });
+    chatWindow.addEventListener('drop', (e) => {
+      if (!llevaArchivos(e) || this.chatState === 'closed') return;
+      e.preventDefault();
+      quitar();
+      if (!this.config.fileUpload) return;
+      this.enviarArchivos(Array.from(e.dataTransfer.files || []));
+    });
+    const aviso = this.shadowRoot.getElementById('avisoArrastre');
+    if (aviso) aviso.textContent = this.textoDeArrastre('soltar');
   }
 
   async subirAdjunto(file) {
