@@ -321,9 +321,9 @@ Una respuesta del motor de tipo `html` se entrega como este mismo bloque.
 
 Todo pasa por [DOMPurify](https://github.com/cure53/DOMPurify) antes de pintarse: no llegan `script`, `iframe`, `object`, `embed`, `form` ni `input`, ni atributos `on*`. Los enlaces se abren en una pestaña nueva con `rel="noopener noreferrer"`.
 
-## ✂️ Salto de mensaje
+## ✂️ Separador (salto de mensaje)
 
-Desde la 1.3.18, un elemento `{ "type": "message_break", "align": "vertical", "items": [] }` en la lista de bloques de una respuesta («Elementos enriquecidos») parte el mensaje: lo que va detrás se pinta en otra burbuja del bot, con su cabecera, la misma separación y la misma animación que dos mensajes seguidos.
+Desde la 1.3.18, un elemento `{ "type": "message_break", "align": "vertical", "items": [] }` en la lista de bloques de una respuesta («Elementos enriquecidos»; en el editor de Treeflow se llama **Separador**) parte el mensaje: lo que va detrás se pinta en otra burbuja del bot, con su cabecera, la misma separación y la misma animación que dos mensajes seguidos.
 
 - Sin ningún salto, el mensaje sale en una sola burbuja, como siempre.
 - Un trozo vacío (un salto al principio, al final o dos seguidos) no pinta burbuja.
