@@ -1,6 +1,6 @@
 import { WIDGET_STYLES } from './styles.js';
 import { ICONS, getIconHtml } from './icons.js';
-import { renderRichMessage, conFormato } from './renderers.js';
+import { renderRichMessage, conFormato, partirEnBurbujas } from './renderers.js';
 import { hayWebCrypto, cifrar, descifrar } from './cifrado.js';
 import {
   getDeviceType, resolveMaximizeDevices, resolveHeaderButtons, opensFullscreen, getOpenSize, getLauncherSize,
@@ -65,6 +65,9 @@ class TreeFlowWidget extends HTMLElement {
     // un sobresalto.
     this.skipNextAnimation = false;
     this.messages = [];
+    // Cuántas veces se limpió el historial: las burbujas de un mensaje partido
+    // que aún esperaban su turno no se pintan sobre un chat vacío.
+    this.vaciados = 0;
     this.config = {};
     // Contexto que viaja en cada petición. Arranca con lo definido en el panel
     // y la página lo amplía con `injectContext(...)`.
@@ -1148,10 +1151,11 @@ class TreeFlowWidget extends HTMLElement {
           };
         }
 
-        this.addMessage(response.message, 'bot', response.suggestions, debugData);
-
         this.pendingRequest = null;
         this.pendingResponse = null;
+
+        // Con un «Salto de mensaje» y retraso de respuesta, las burbujas siguientes tardan.
+        await this.addMessage(response.message, 'bot', response.suggestions, debugData);
       }
     } catch (error) {
       this.hideTyping();
@@ -1167,8 +1171,83 @@ class TreeFlowWidget extends HTMLElement {
   // In the actual file write, I must include them.
 
   // Updated addMessage to handle rich content
+  //
+  // Un «Salto de mensaje» (`message_break`, v1.3.18) parte una respuesta rica en
+  // varias burbujas del bot, cada una con su cabecera y su animación, como dos
+  // mensajes seguidos; los botones de un trozo van en su burbuja y las
+  // sugerencias, detrás de la última. Un trozo que no pinta nada (vacío, o sólo
+  // con tipos que este widget no conoce) no deja una burbuja vacía. Sin saltos
+  // sale una sola burbuja, como siempre. Devuelve la promesa de la entrega: con
+  // «Retraso de respuesta» activo, las burbujas siguientes tardan en llegar.
   addMessage(content, sender, suggestions = [], debugData = null, senderName = null) {
+    const rico = this.contenidoRico(content, sender, senderName);
+    const trozos = rico ? partirEnBurbujas(rico.valor) : null;
+    let burbujas;
+    if (trozos) {
+      burbujas = trozos
+        .map((trozo) => ({ html: renderRichMessage(trozo) }))
+        .filter((burbuja) => burbuja.html.trim() !== '');
+    } else if (rico) {
+      burbujas = [{ html: renderRichMessage(rico.valor) }];
+    } else {
+      burbujas = [{ texto: content }];
+    }
+    const entrega = this.entregarBurbujas(burbujas, { sender, suggestions, debugData, senderName });
+    this.messages.push({ content, sender, suggestions, timestamp: new Date() });
+    return entrega;
+  }
+
+  /** `{ valor }` con los bloques si el contenido es rico (JSON de bloques), o null si es texto. */
+  contenidoRico(content, sender, senderName) {
+    if (sender === 'bot' && !senderName && typeof content === 'string') {
+      try {
+        // Try to parse as JSON
+        // We only attempt if it looks like JSON (starts with { or [)
+        const trimmed = content.trim();
+        if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+          const parsed = JSON.parse(content);
+          // Check if it has 'type' or is an array of blocks
+          if (Array.isArray(parsed) || (parsed.type && parsed.type !== 'text')) {
+            return { valor: parsed };
+          }
+        }
+      } catch (e) {
+        // Not JSON, treat as text
+      }
+    } else if (typeof content === 'object') {
+      return { valor: content };
+    }
+    return null;
+  }
+
+  /** Pinta las burbujas (`{ html }` ya pintado o `{ texto }`) y, detrás de la
+   *  última, las sugerencias.
+   *
+   *  La primera burbuja sale en el acto: lo que va antes del primer `await` corre
+   *  síncrono, así que sin «Retraso de respuesta» salen todas juntas, cada una con
+   *  su animación. Con el retraso, cada burbuja siguiente espera con «Escribiendo…»
+   *  lo mismo que la primera, como un mensaje más.
+   */
+  async entregarBurbujas(burbujas, { sender, suggestions, debugData, senderName }) {
+    const vaciados = this.vaciados;
+    for (let i = 0; i < burbujas.length; i++) {
+      if (i > 0 && this.config.responseDelay && this.config.responseDelaySeconds > 0) {
+        this.showTyping();
+        await this.delay(this.config.responseDelaySeconds);
+        this.hideTyping();
+        // Se limpió el historial mientras tanto: el resto del mensaje ya no va.
+        if (this.vaciados !== vaciados) return;
+      }
+      const ultima = i === burbujas.length - 1;
+      this.pintarBurbuja(burbujas[i], sender, senderName, ultima ? debugData : null);
+    }
+    this.pintarSugerencias(suggestions);
+  }
+
+  /** Una burbuja: la cabecera (avatar y nombre) y el contenido, texto o bloques. */
+  pintarBurbuja({ html, texto }, sender, senderName, debugData) {
     const messagesContainer = this.shadowRoot.getElementById('messages');
+    if (!messagesContainer) return;
     
     // Contenedor wrapper para agrupar cabecera (avatar + nombre) y burbuja
     const wrapper = document.createElement('div');
@@ -1208,33 +1287,8 @@ class TreeFlowWidget extends HTMLElement {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${sender}`;
 
-    // Check if content is rich (JSON)
-    let isRich = false;
-    let richContent = null;
-
-    if (sender === 'bot' && !senderName && typeof content === 'string') {
-      try {
-        // Try to parse as JSON
-        // We only attempt if it looks like JSON (starts with { or [)
-        const trimmed = content.trim();
-        if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-          const parsed = JSON.parse(content);
-          // Check if it has 'type' or is an array of blocks
-          if (Array.isArray(parsed) || (parsed.type && parsed.type !== 'text')) {
-            isRich = true;
-            richContent = parsed;
-          }
-        }
-      } catch (e) {
-        // Not JSON, treat as text
-      }
-    } else if (typeof content === 'object') {
-      isRich = true;
-      richContent = content;
-    }
-
-    if (isRich) {
-      messageDiv.innerHTML = renderRichMessage(richContent);
+    if (html !== undefined) {
+      messageDiv.innerHTML = html;
     } else {
       // Texto plano, con los mismos marcadores que entiende el widget de la app:
       // **negrita**, *cursiva*, __subrayado__. Antes se metía con `textContent`,
@@ -1242,7 +1296,7 @@ class TreeFlowWidget extends HTMLElement {
       // `conFormato` escapa el texto antes de aplicarlos, así que usar innerHTML
       // aquí no abre la puerta a inyectar nada.
       const messageContent = document.createElement('span');
-      messageContent.innerHTML = conFormato(content);
+      messageContent.innerHTML = conFormato(texto);
       messageDiv.appendChild(messageContent);
     }
 
@@ -1266,6 +1320,12 @@ class TreeFlowWidget extends HTMLElement {
 
     wrapper.appendChild(messageDiv);
     messagesContainer.appendChild(wrapper);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }
+
+  pintarSugerencias(suggestions) {
+    const messagesContainer = this.shadowRoot.getElementById('messages');
+    if (!messagesContainer) return;
 
     if (suggestions && suggestions.length > 0) {
       const suggestionsDiv = document.createElement('div');
@@ -1287,7 +1347,6 @@ class TreeFlowWidget extends HTMLElement {
     }
 
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    this.messages.push({ content, sender, suggestions, timestamp: new Date() });
   }
 
   // Helper methods for rich components
@@ -1941,10 +2000,11 @@ class TreeFlowWidget extends HTMLElement {
           };
         }
 
-        this.addMessage(response.message, 'bot', response.suggestions, debugData);
-
         this.pendingRequest = null;
         this.pendingResponse = null;
+
+        // Con un «Salto de mensaje» y retraso de respuesta, las burbujas siguientes tardan.
+        await this.addMessage(response.message, 'bot', response.suggestions, debugData);
       }
     } catch (error) {
       this.hideTyping();
@@ -1964,10 +2024,11 @@ class TreeFlowWidget extends HTMLElement {
           response: this.pendingResponse
         } : null;
 
-        this.addMessage(response.message, 'bot', response.suggestions, debugData);
-
         this.pendingRequest = null;
         this.pendingResponse = null;
+
+        // Con un «Salto de mensaje» y retraso de respuesta, las burbujas siguientes tardan.
+        await this.addMessage(response.message, 'bot', response.suggestions, debugData);
       }
     } catch (error) {
       console.error('Error sending start event:', eventName, error);
@@ -2246,10 +2307,11 @@ class TreeFlowWidget extends HTMLElement {
           response: this.pendingResponse
         } : null;
 
-        this.addMessage(response.message, 'bot', response.suggestions, debugData);
-
         this.pendingRequest = null;
         this.pendingResponse = null;
+
+        // Con un «Salto de mensaje» y retraso de respuesta, las burbujas siguientes tardan.
+        await this.addMessage(response.message, 'bot', response.suggestions, debugData);
       }
     } catch (error) {
       console.error('Error sending start trigger:', trigger, error);
@@ -2371,6 +2433,7 @@ class TreeFlowWidget extends HTMLElement {
     const messagesContainer = this.shadowRoot.getElementById('messages');
     messagesContainer.innerHTML = '';
     this.messages = [];
+    this.vaciados += 1;
   }
 
   sendMessage(message) {

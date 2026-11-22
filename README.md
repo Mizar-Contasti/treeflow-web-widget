@@ -20,7 +20,7 @@ Widget de chat embebible para TreeFlow - **Integración en 2 líneas de código*
 **Versión.** `@latest` carga siempre la última versión publicada: no hay que tocar la página cuando sale una
 nueva. jsDelivr la cachea (hasta ~12 h en el CDN y una semana en el navegador del visitante), así que un
 arreglo no llega a todos al instante; se puede purgar en `https://purge.jsdelivr.net/gh/Mizar-Contasti/treeflow-web-widget@latest/dist/treeflow-widget.js`.
-Para decidir tú cuándo cambia, fija una versión: `@v1.3.17`. Nunca `@main`: lo que está en main no está publicado.
+Para decidir tú cuándo cambia, fija una versión: `@v1.3.18`. Nunca `@main`: lo que está en main no está publicado.
 
 ## 🔧 Configuración de Endpoint
 
@@ -320,6 +320,18 @@ Un bloque `{ "type": "html", "items": [{ "html": "..." }] }` pinta HTML dentro d
 Una respuesta del motor de tipo `html` se entrega como este mismo bloque.
 
 Todo pasa por [DOMPurify](https://github.com/cure53/DOMPurify) antes de pintarse: no llegan `script`, `iframe`, `object`, `embed`, `form` ni `input`, ni atributos `on*`. Los enlaces se abren en una pestaña nueva con `rel="noopener noreferrer"`.
+
+## ✂️ Salto de mensaje
+
+Desde la 1.3.18, un elemento `{ "type": "message_break", "align": "vertical", "items": [] }` en la lista de bloques de una respuesta («Elementos enriquecidos») parte el mensaje: lo que va detrás se pinta en otra burbuja del bot, con su cabecera, la misma separación y la misma animación que dos mensajes seguidos.
+
+- Sin ningún salto, el mensaje sale en una sola burbuja, como siempre.
+- Un trozo vacío (un salto al principio, al final o dos seguidos) no pinta burbuja.
+- Los botones y respuestas rápidas van en la burbuja de su trozo; las `suggestions` de la respuesta, detrás de la última.
+- Con **Retraso de respuesta** activo, cada burbuja siguiente espera ese tiempo con «Escribiendo…», como un mensaje más. Sin él, salen todas a la vez.
+- Un tipo de bloque desconocido (o un bloque mal formado) no pinta nada ni rompe el resto del mensaje; un trozo que sólo tiene tipos desconocidos no deja una burbuja vacía.
+
+El widget no guarda la conversación entre recargas (cada carga es una sesión nueva), así que no hay historial que repintar.
 
 ## 🌐 Compatibilidad
 

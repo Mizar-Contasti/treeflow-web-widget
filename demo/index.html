@@ -87,6 +87,7 @@
                 <button onclick="sendFile()">Send File</button>
                 <button onclick="sendButtons()">Send Buttons</button>
                 <button onclick="sendQuickReplies()">Send Quick Replies</button>
+                <button onclick="sendMessageBreak()">Send Message Break</button>
                 <button onclick="runStressTest()" style="background-color: #dc2626;">⚠️ Stress Test</button>
             </div>
         </div>
@@ -226,6 +227,29 @@
                 ]
             };
             widget.addMessage(qr, 'bot');
+            widget.open();
+        }
+
+        // «Salto de mensaje» (v1.3.18): una sola respuesta del bot con tres burbujas.
+        // Los saltos del principio, del final y el doble del medio no pintan nada.
+        function sendMessageBreak() {
+            const bloques = [
+                { type: 'message_break', align: 'vertical', items: [] },
+                { type: 'paragraph', align: 'vertical', items: [{ text: '¡Hola! Soy el asistente de **TreeFlow**.' }] },
+                { type: 'message_break', align: 'vertical', items: [] },
+                { type: 'image', align: 'vertical', items: [{ url: 'https://picsum.photos/seed/treeflow/400/200', title: 'Nuestro catálogo' }] },
+                { type: 'paragraph', align: 'vertical', items: [{ text: 'Te dejo el catálogo de esta semana.' }] },
+                { type: 'message_break', align: 'vertical', items: [] },
+                { type: 'message_break', align: 'vertical', items: [] },
+                { type: 'paragraph', align: 'vertical', items: [{ text: '¿Qué quieres hacer ahora?' }] },
+                { type: 'quick_replies', align: 'horizontal', items: [
+                    { label: 'Ver productos', payload: 'productos' },
+                    { label: 'Hablar con alguien', payload: 'asesor' }
+                ] },
+                { type: 'tipo_que_no_existe', items: [] },
+                { type: 'message_break', align: 'vertical', items: [] }
+            ];
+            widget.addMessage(bloques, 'bot');
             widget.open();
         }
 

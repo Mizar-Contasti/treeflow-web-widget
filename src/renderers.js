@@ -27,6 +27,38 @@ export function conFormato(texto) {
     .replace(/__([^_]+?)__/g, '<u>$1</u>');
 }
 
+// «Salto de mensaje» (v1.3.18): `{ "type": "message_break", "align": "vertical", "items": [] }`.
+// No pinta nada; lo que va detrás sale en otra burbuja del bot, como un mensaje más.
+const SALTO_DE_MENSAJE = 'message_break';
+
+function esSalto(bloque) {
+  return Boolean(bloque) && typeof bloque === 'object' && bloque.type === SALTO_DE_MENSAJE;
+}
+
+/** Parte un contenido rico en los trozos que van cada uno en su burbuja.
+ *
+ *  Sin ningún salto devuelve null: el mensaje se pinta entero, como siempre.
+ *  Con saltos, los trozos vacíos (un salto al principio, al final o dos
+ *  seguidos) se descartan y no pintan burbuja.
+ */
+export function partirEnBurbujas(contenido) {
+  if (!Array.isArray(contenido)) {
+    return esSalto(contenido) ? [] : null;
+  }
+  if (!contenido.some(esSalto)) {
+    return null;
+  }
+  const trozos = [[]];
+  contenido.forEach((bloque) => {
+    if (esSalto(bloque)) {
+      trozos.push([]);
+    } else {
+      trozos[trozos.length - 1].push(bloque);
+    }
+  });
+  return trozos.filter((trozo) => trozo.length > 0);
+}
+
 export function renderRichMessage(block) {
   if (!block) return '';
 
@@ -35,6 +67,17 @@ export function renderRichMessage(block) {
     return block.map(b => renderRichMessage(b)).join('');
   }
 
+  // Un bloque mal formado (un `items` que no es lista, un icono que no es texto…)
+  // se queda sin pintar, pero no se lleva por delante el resto del mensaje.
+  try {
+    return renderBloque(block);
+  } catch (e) {
+    console.warn('[TreeFlow] No se pudo pintar el bloque:', block && block.type, e);
+    return '';
+  }
+}
+
+function renderBloque(block) {
   // Handle 'items' property within a block (new structure)
   if (block.items && Array.isArray(block.items) && block.items.length > 0) {
     // If it's a carousel, we handle items specifically in renderCarousel
@@ -89,6 +132,10 @@ export function renderRichMessage(block) {
     case 'paragraph':
     case 'text':
       return renderParagraph(block);
+    // El widget parte el mensaje en los saltos antes de pintarlo (partirEnBurbujas);
+    // si alguno llega hasta aquí, no pinta nada.
+    case SALTO_DE_MENSAJE:
+      return '';
     default:
       console.warn('Unknown block type:', block.type, block);
       return '';

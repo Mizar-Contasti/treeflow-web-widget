@@ -60,7 +60,7 @@
 
         button.secondary:hover {
             background-color: #4b5563;
-        }</style><script defer="defer" src="treeflow-widget.js"></script></head><body><h1>TreeFlow Widget Demo</h1><div class="controls"><div class="control-group"><h3>Test Rich Components</h3><div class="btn-grid"><button onclick="sendRichCard()">Send Card</button> <button onclick="sendCarousel()">Send Carousel</button> <button onclick="sendVideo()">Send Video</button> <button onclick="sendAudio()">Send Audio</button> <button onclick="sendLocation()">Send Location</button> <button onclick="sendFile()">Send File</button> <button onclick="sendButtons()">Send Buttons</button> <button onclick="sendQuickReplies()">Send Quick Replies</button> <button onclick="runStressTest()" style="background-color: #dc2626;">⚠️ Stress Test</button></div></div><div class="control-group"><h3>Widget Controls</h3><div class="btn-grid"><button class="secondary" onclick="toggleWidget()">Toggle Widget</button> <button class="secondary" onclick="clearChat()">Clear Chat</button></div></div></div><treeflow-widget title="Demo Assistant" bot-image="https://ui-avatars.com/api/?name=Bot&background=2563eb&color=fff" primary-color="#2563eb" secondary-color="#f3f4f6" position="bottom-right" file-upload="true" microphone="true" debug="true" enable-maximize="true"></treeflow-widget><script>const widget = document.querySelector('treeflow-widget');
+        }</style><script defer="defer" src="treeflow-widget.js"></script></head><body><h1>TreeFlow Widget Demo</h1><div class="controls"><div class="control-group"><h3>Test Rich Components</h3><div class="btn-grid"><button onclick="sendRichCard()">Send Card</button> <button onclick="sendCarousel()">Send Carousel</button> <button onclick="sendVideo()">Send Video</button> <button onclick="sendAudio()">Send Audio</button> <button onclick="sendLocation()">Send Location</button> <button onclick="sendFile()">Send File</button> <button onclick="sendButtons()">Send Buttons</button> <button onclick="sendQuickReplies()">Send Quick Replies</button> <button onclick="sendMessageBreak()">Send Message Break</button> <button onclick="runStressTest()" style="background-color: #dc2626;">⚠️ Stress Test</button></div></div><div class="control-group"><h3>Widget Controls</h3><div class="btn-grid"><button class="secondary" onclick="toggleWidget()">Toggle Widget</button> <button class="secondary" onclick="clearChat()">Clear Chat</button></div></div></div><treeflow-widget title="Demo Assistant" bot-image="https://ui-avatars.com/api/?name=Bot&background=2563eb&color=fff" primary-color="#2563eb" secondary-color="#f3f4f6" position="bottom-right" file-upload="true" microphone="true" debug="true" enable-maximize="true"></treeflow-widget><script>const widget = document.querySelector('treeflow-widget');
 
         function toggleWidget() {
             widget.toggle();
@@ -180,6 +180,29 @@
                 ]
             };
             widget.addMessage(qr, 'bot');
+            widget.open();
+        }
+
+        // «Salto de mensaje» (v1.3.18): una sola respuesta del bot con tres burbujas.
+        // Los saltos del principio, del final y el doble del medio no pintan nada.
+        function sendMessageBreak() {
+            const bloques = [
+                { type: 'message_break', align: 'vertical', items: [] },
+                { type: 'paragraph', align: 'vertical', items: [{ text: '¡Hola! Soy el asistente de **TreeFlow**.' }] },
+                { type: 'message_break', align: 'vertical', items: [] },
+                { type: 'image', align: 'vertical', items: [{ url: 'https://picsum.photos/seed/treeflow/400/200', title: 'Nuestro catálogo' }] },
+                { type: 'paragraph', align: 'vertical', items: [{ text: 'Te dejo el catálogo de esta semana.' }] },
+                { type: 'message_break', align: 'vertical', items: [] },
+                { type: 'message_break', align: 'vertical', items: [] },
+                { type: 'paragraph', align: 'vertical', items: [{ text: '¿Qué quieres hacer ahora?' }] },
+                { type: 'quick_replies', align: 'horizontal', items: [
+                    { label: 'Ver productos', payload: 'productos' },
+                    { label: 'Hablar con alguien', payload: 'asesor' }
+                ] },
+                { type: 'tipo_que_no_existe', items: [] },
+                { type: 'message_break', align: 'vertical', items: [] }
+            ];
+            widget.addMessage(bloques, 'bot');
             widget.open();
         }
 
