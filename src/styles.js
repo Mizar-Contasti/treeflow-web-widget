@@ -1009,7 +1009,9 @@ export const WIDGET_STYLES = `
        no cambiaba nada en un mensaje enriquecido. */
     font-size: var(--tfw-font-size-message, 12.8px);
     line-height: 1.5;
-    color: #374151;
+    /* El color del globo (el del panel, o el claro del modo oscuro), como el HTML.
+       Fijo en #374151 salía gris oscuro sobre el fondo oscuro (23-nov). */
+    color: inherit;
     margin-bottom: 4px; /* Reduced from 8px */
     white-space: pre-wrap;
     padding: 0; /* Ensure no extra padding */
@@ -1434,6 +1436,40 @@ export const WIDGET_STYLES = `
   
   .chat-window.dark-mode .rich-card-description {
     color: #cbd5e1;
+  }
+
+  /* Texto, acordeón y desplegable con colores fijos de modo claro: en oscuro
+     quedaban gris oscuro sobre oscuro, o cajas blancas (23-nov). */
+  .chat-window.dark-mode .rich-card-text {
+    color: #cbd5e1;
+  }
+
+  .chat-window.dark-mode .rich-accordion-item {
+    background: #0f172a;
+    border-color: #334155;
+  }
+
+  .chat-window.dark-mode .rich-accordion-title {
+    color: #f1f5f9;
+  }
+
+  .chat-window.dark-mode .rich-accordion-content {
+    color: #cbd5e1;
+  }
+
+  .chat-window.dark-mode .rich-dropdown {
+    background: #0f172a;
+    border-color: #334155;
+  }
+
+  .chat-window.dark-mode .rich-dropdown-label {
+    color: #94a3b8;
+  }
+
+  .chat-window.dark-mode .rich-dropdown-select {
+    background: #1e293b;
+    color: #f1f5f9;
+    border-color: #475569;
   }
   
   .chat-window.dark-mode .suggestion-chip {
