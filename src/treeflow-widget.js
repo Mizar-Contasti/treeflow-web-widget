@@ -2,6 +2,7 @@ import { WIDGET_STYLES } from './styles.js';
 import { ICONS, getIconHtml } from './icons.js';
 import { renderRichMessage, conFormato, partirEnBurbujas } from './renderers.js';
 import { hayWebCrypto, cifrar, descifrar } from './cifrado.js';
+import { tocarSonido } from './sonido.js';
 import {
   getDeviceType, resolveMaximizeDevices, resolveHeaderButtons, opensFullscreen, getOpenSize, getLauncherSize,
   OPEN_MS, CLOSE_MS,
@@ -43,6 +44,19 @@ const TEXTOS_DE_ARRASTRE = {
   it: { soltar: 'Rilascia il file per inviarlo', tipo: 'Questo tipo di file non è accettato.' },
 };
 
+// El botón de la cabecera que silencia o vuelve a activar el sonido de los avisos (v1.3.20).
+const TEXTOS_DE_SONIDO = {
+  es: { silenciar: 'Silenciar avisos', activar: 'Activar sonido' },
+  en: { silenciar: 'Mute notifications', activar: 'Turn sound on' },
+  pt: { silenciar: 'Silenciar avisos', activar: 'Ativar som' },
+  fr: { silenciar: 'Couper le son', activar: 'Activer le son' },
+  de: { silenciar: 'Töne stummschalten', activar: 'Ton einschalten' },
+  it: { silenciar: 'Silenzia gli avvisi', activar: 'Attiva il suono' },
+};
+
+// Un mensaje que llega poco después de otro (un asesor que escribe en ráfaga) no vuelve a sonar.
+const PAUSA_ENTRE_AVISOS_MS = 1500;
+
 function tipoAceptado(file) {
   const nombre = (file && file.name ? file.name : '').toLowerCase();
   return TIPOS_DE_ADJUNTO.split(',').some((ext) => nombre.endsWith(ext));
@@ -65,6 +79,13 @@ class TreeFlowWidget extends HTMLElement {
     // un sobresalto.
     this.skipNextAnimation = false;
     this.messages = [];
+    // Sonido al llegar un mensaje: el contexto de audio de los avisos (aparte del
+    // de grabar), el que espera el primer gesto para desbloquearlo, y cuándo sonó
+    // el último.
+    this.audioAvisos = null;
+    this.desbloquearAudio = null;
+    this.ultimoAviso = 0;
+    this.silenciado = null;
     // Cuántas veces se limpió el historial: las burbujas de un mensaje partido
     // que aún esperaban su turno no se pintan sobre un chat vacío.
     this.vaciados = 0;
@@ -174,6 +195,11 @@ class TreeFlowWidget extends HTMLElement {
   disconnectedCallback() {
     clearTimeout(this.animTimer);
     this.cerrarSocketAsesor();
+    this.soltarDesbloqueoDeAudio();
+    if (this.audioAvisos) {
+      this.audioAvisos.close().catch(() => {});
+      this.audioAvisos = null;
+    }
     if (this.onViewportResize) {
       window.removeEventListener('resize', this.onViewportResize);
       this.onViewportResize = null;
@@ -356,6 +382,12 @@ class TreeFlowWidget extends HTMLElement {
       maxFileSize: parseInt(getVal('max-file-size', 'maxFileSize', 5 * 1024 * 1024)), // 5MB default
       responseDelay: getBool('response-delay', 'responseDelay', false),
       responseDelaySeconds: parseInt(getVal('response-delay-seconds', 'responseDelaySeconds', 1000)),
+      // Sonido al llegar un mensaje (v1.3.20): sólo por config remota o global.
+      messageSound: raw('enableMessageSound') === true,
+      messageSoundType: raw('messageSound') || 'burbuja',
+      messageSoundVolume: raw('messageSoundVolume') == null || !Number.isFinite(Number(raw('messageSoundVolume')))
+        ? 60 : Number(raw('messageSoundVolume')),
+      messageSoundAlways: raw('messageSoundAlways') === true,
       sttEnabled: getBool('stt-enabled', 'sttEnabled', false),
       sttEndpoint: getVal('stt-endpoint', 'sttEndpoint', 'http://localhost:8000/stt'),
       startEvent: getVal('start-event', 'startEvent', null),
@@ -517,6 +549,7 @@ class TreeFlowWidget extends HTMLElement {
             ${this.config.subtitle ? `<div class="chat-subtitle">${this.config.subtitle}</div>` : ''}
           </div>
           <div class="chat-controls">
+            ${this.config.messageSound ? `<button class="control-btn" id="soundBtn"></button>` : ''}
             ${this.anyDevice(this.config.headerButtons.minimize) ? `<button class="control-btn" id="minimizeBtn" title="Minimizar">${ICONS.MINIMIZE}</button>` : ''}
             ${(this.config.maximizeDevices.desktop || this.config.maximizeDevices.tablet) ? `<button class="control-btn" id="maximizeBtn" title="Maximizar">${ICONS.MAXIMIZE}</button>` : ''}
             ${this.anyDevice(this.config.headerButtons.close) ? `<button class="control-btn" id="closeBtn" title="Cerrar">${ICONS.CLOSE}</button>` : ''}
@@ -686,6 +719,12 @@ class TreeFlowWidget extends HTMLElement {
     if (maximizeBtn) {
       maximizeBtn.addEventListener('click', () => this.toggleMaximize());
     }
+    const soundBtn = this.shadowRoot.getElementById('soundBtn');
+    if (soundBtn) {
+      soundBtn.addEventListener('click', () => this.alternarSonido());
+      this.pintarBotonDeSonido();
+    }
+    this.prepararAudio();
     sendBtn.addEventListener('click', () => this.handleSendMessage());
 
     messageInput.addEventListener('keydown', (e) => {
@@ -1194,7 +1233,113 @@ class TreeFlowWidget extends HTMLElement {
     }
     const entrega = this.entregarBurbujas(burbujas, { sender, suggestions, debugData, senderName });
     this.messages.push({ content, sender, suggestions, timestamp: new Date() });
+    // Lo del bot y lo del asesor suenan, si está activado; lo que escribe el visitante, no.
+    if (sender === 'bot') this.avisarConSonido();
     return entrega;
+  }
+
+  // ── Sonido al llegar un mensaje (v1.3.20) ─────────────────────────────────
+  //
+  // Los navegadores no dejan sonar nada hasta que la persona toca la página: el
+  // contexto de audio se crea (o se reanuda) con su primer clic, toque o tecla
+  // en cualquier parte, y hasta entonces los mensajes llegan en silencio. Por
+  // defecto suena sólo si el chat está cerrado o la pestaña no está a la vista;
+  // con «Sonar siempre», también con el chat abierto.
+
+  prepararAudio() {
+    if (!this.config.messageSound || this.desbloquearAudio || typeof document === 'undefined') return;
+    if (this.audioAvisos && this.audioAvisos.state === 'running') return;
+    this.desbloquearAudio = () => {
+      const ctx = this.contextoDeAudio();
+      if (!ctx || ctx.state === 'running') {
+        this.soltarDesbloqueoDeAudio();
+        return;
+      }
+      ctx.resume().then(() => {
+        if (ctx.state === 'running') this.soltarDesbloqueoDeAudio();
+      }).catch(() => {});
+    };
+    ['pointerdown', 'keydown', 'touchstart'].forEach((tipo) => {
+      document.addEventListener(tipo, this.desbloquearAudio, { capture: true, passive: true });
+    });
+  }
+
+  soltarDesbloqueoDeAudio() {
+    if (!this.desbloquearAudio) return;
+    ['pointerdown', 'keydown', 'touchstart'].forEach((tipo) => {
+      document.removeEventListener(tipo, this.desbloquearAudio, { capture: true });
+    });
+    this.desbloquearAudio = null;
+  }
+
+  /** El contexto de audio de los avisos, creado la primera vez; si estaba suspendido, se reanuda. */
+  contextoDeAudio() {
+    const Contexto = window.AudioContext || window.webkitAudioContext;
+    if (!Contexto) return null;
+    if (!this.audioAvisos) {
+      try {
+        this.audioAvisos = new Contexto();
+      } catch (e) {
+        return null;
+      }
+    }
+    if (this.audioAvisos.state === 'suspended') this.audioAvisos.resume().catch(() => {});
+    return this.audioAvisos;
+  }
+
+  avisarConSonido() {
+    if (!this.config.messageSound || this.sonidoSilenciado()) return;
+    const mirando = this.chatState !== 'closed' && !document.hidden
+      && (typeof document.hasFocus !== 'function' || document.hasFocus());
+    if (mirando && !this.config.messageSoundAlways) return;
+    const ahora = Date.now();
+    if (ahora - this.ultimoAviso < PAUSA_ENTRE_AVISOS_MS) return;
+    const ctx = this.audioAvisos;
+    if (!ctx || ctx.state !== 'running') return;
+    this.ultimoAviso = ahora;
+    tocarSonido(ctx, this.config.messageSoundType, this.config.messageSoundVolume / 100);
+  }
+
+  /** El silencio que eligió el visitante se recuerda en su navegador, por bot. */
+  claveDeSilencio() {
+    return `treeflow-sonido-silenciado:${this.config.treeId || ''}`;
+  }
+
+  sonidoSilenciado() {
+    if (this.silenciado === null) {
+      try {
+        this.silenciado = window.localStorage.getItem(this.claveDeSilencio()) === '1';
+      } catch (e) {
+        this.silenciado = false;
+      }
+    }
+    return this.silenciado;
+  }
+
+  alternarSonido() {
+    this.silenciado = !this.sonidoSilenciado();
+    try {
+      if (this.silenciado) window.localStorage.setItem(this.claveDeSilencio(), '1');
+      else window.localStorage.removeItem(this.claveDeSilencio());
+    } catch (e) { /* sin almacenamiento: vale para esta visita */ }
+    this.pintarBotonDeSonido();
+    // Al volver a activarlo suena una vez: así se sabe cómo suena y el audio queda desbloqueado.
+    if (!this.silenciado) {
+      const ctx = this.contextoDeAudio();
+      if (ctx) tocarSonido(ctx, this.config.messageSoundType, this.config.messageSoundVolume / 100);
+    }
+  }
+
+  pintarBotonDeSonido() {
+    const boton = this.shadowRoot.getElementById('soundBtn');
+    if (!boton) return;
+    const idioma = String(this.config.lang || 'es').slice(0, 2).toLowerCase();
+    const textos = TEXTOS_DE_SONIDO[idioma] || TEXTOS_DE_SONIDO.es;
+    const silenciado = this.sonidoSilenciado();
+    boton.innerHTML = silenciado ? ICONS.BELL_OFF : ICONS.BELL;
+    boton.title = silenciado ? textos.activar : textos.silenciar;
+    boton.setAttribute('aria-label', boton.title);
+    boton.setAttribute('aria-pressed', silenciado ? 'true' : 'false');
   }
 
   /** `{ valor }` con los bloques si el contenido es rico (JSON de bloques), o null si es texto. */

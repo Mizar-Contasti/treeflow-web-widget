@@ -20,7 +20,7 @@ Widget de chat embebible para TreeFlow - **Integración en 2 líneas de código*
 **Versión.** `@latest` carga siempre la última versión publicada: no hay que tocar la página cuando sale una
 nueva. jsDelivr la cachea (hasta ~12 h en el CDN y una semana en el navegador del visitante), así que un
 arreglo no llega a todos al instante; se puede purgar en `https://purge.jsdelivr.net/gh/Mizar-Contasti/treeflow-web-widget@latest/dist/treeflow-widget.js`.
-Para decidir tú cuándo cambia, fija una versión: `@v1.3.19`. Nunca `@main`: lo que está en main no está publicado.
+Para decidir tú cuándo cambia, fija una versión: `@v1.3.20`. Nunca `@main`: lo que está en main no está publicado.
 
 ## 🔧 Configuración de Endpoint
 
@@ -332,6 +332,37 @@ Desde la 1.3.18, un elemento `{ "type": "message_break", "align": "vertical", "i
 - Un tipo de bloque desconocido (o un bloque mal formado) no pinta nada ni rompe el resto del mensaje; un trozo que sólo tiene tipos desconocidos no deja una burbuja vacía.
 
 El widget no guarda la conversación entre recargas (cada carga es una sesión nueva), así que no hay historial que repintar.
+
+## 🔠 Formato del texto
+
+Los párrafos y las respuestas de texto entienden la misma sintaxis que el editor de Treeflow:
+
+- `**negrita**`, `*cursiva*` y `__subrayado__`.
+- Desde la 1.3.20, un **tamaño por línea** con una marca al principio, como en Discord: `# ` título, `## ` subtítulo, `-# ` pequeño. Una línea sin marca es normal. Los tamaños son relativos a la letra del mensaje (`--tfw-font-size-message`): 1,4 veces el título, 1,15 el subtítulo y 0,8 lo pequeño. Las clases son `tfw-titulo`, `tfw-subtitulo` y `tfw-pequeno`.
+- Los saltos de línea se respetan, también en una respuesta de texto (antes salía en un solo renglón).
+
+El texto se escapa antes de aplicar el formato: lo único que llega a ser HTML son esas etiquetas, nunca lo que escribió el bot.
+
+## 🔘 Botones en horizontal
+
+Un bloque `buttons` con `"align": "horizontal"` (o `"layout": "horizontal"`) pone los botones en fila, y los que no caben bajan al renglón siguiente (`flex-wrap`), como en el widget de la app. Sin eso, o con `"vertical"`, van uno debajo de otro a todo el ancho. Hasta la 1.3.19 el widget ignoraba la alineación y siempre los apilaba. Desde la 1.3.20 los botones también tienen su estilo de modo oscuro.
+
+## 🔔 Sonido al llegar un mensaje
+
+Desde la 1.3.20 el widget puede sonar cuando responde el bot o un asesor. Se activa en Treeflow (Canales › Web › Funcionalidad) y llega por la config remota; también vale en `window.treeflowConfig`:
+
+| Campo | Qué hace | Por defecto |
+|---|---|---|
+| `enableMessageSound` | Activa el sonido | `false` |
+| `messageSound` | `burbuja`, `campana`, `pop`, `suave` o `doble` | `burbuja` |
+| `messageSoundVolume` | Volumen, de 0 a 100 | `60` |
+| `messageSoundAlways` | Sonar también con el chat abierto y a la vista | `false` |
+
+- Sin `messageSoundAlways`, suena sólo si el chat está cerrado o la pestaña no está a la vista (oculta o sin foco): así no molesta a quien está mirando el chat.
+- Una respuesta suena una vez aunque venga partida en varias burbujas, y un mensaje que llega menos de 1,5 s después de otro no vuelve a sonar.
+- Los sonidos se generan con Web Audio: no hay archivos que descargar.
+- Los navegadores no dejan sonar nada hasta que la persona hace clic, toca o escribe en la página. El widget prepara el audio con ese primer gesto, en cualquier parte de la página; lo que llegue antes, llega en silencio.
+- Con el sonido activado, la cabecera tiene una campana para que el visitante lo silencie. Se recuerda en su navegador, por bot (`localStorage`, clave `treeflow-sonido-silenciado:<tree-id>`). Al volver a activarlo suena una vez.
 
 ## 🌐 Compatibilidad
 

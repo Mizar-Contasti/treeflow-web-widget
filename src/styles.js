@@ -289,6 +289,30 @@ export const WIDGET_STYLES = `
     border-bottom-left-radius: 4px;
     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
   }
+
+  /* El texto de un mensaje del bot respeta sus saltos de línea, como el párrafo
+     enriquecido (pre-wrap): antes un texto de varias líneas salía en una sola. */
+  .message.bot > span {
+    white-space: pre-line;
+  }
+
+  /* Tamaños por línea (v1.3.20): «# » título, «## » subtítulo, «-# » pequeño. */
+  .tfw-titulo {
+    font-size: 1.4em;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+
+  .tfw-subtitulo {
+    font-size: 1.15em;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+
+  .tfw-pequeno {
+    font-size: 0.8em;
+    opacity: 0.75;
+  }
   
   .typing-indicator {
     display: none;
@@ -1050,6 +1074,18 @@ export const WIDGET_STYLES = `
     background: #e2e8f0;
   }
 
+  /* Botones en horizontal (v1.3.20): en fila, y al renglón siguiente los que no caben. */
+  .rich-buttons.horizontal {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .rich-buttons.horizontal .action-btn {
+    width: auto;
+    flex: 1 1 auto;
+    min-width: 120px;
+  }
+
   /* Los enlaces van perfilados, como en la app: llevan a otro sitio y conviene
      que no se confundan con los que siguen la conversación aquí dentro. */
   .action-btn.primary, .action-btn.enlace {
@@ -1472,6 +1508,28 @@ export const WIDGET_STYLES = `
     border-color: #475569;
   }
   
+  /* Botones en modo oscuro (v1.3.20): fondo oscuro y borde, como los demás elementos;
+     antes seguían gris claro sobre el globo oscuro. Los enlaces conservan su perfil
+     del color principal. */
+  .chat-window.dark-mode .action-btn,
+  .chat-window.dark-mode .share-location-btn {
+    background: #0f172a;
+    border-color: #334155;
+    color: #f1f5f9;
+  }
+
+  .chat-window.dark-mode .action-btn:hover,
+  .chat-window.dark-mode .share-location-btn:hover {
+    background: #1e293b;
+  }
+
+  .chat-window.dark-mode .action-btn.primary,
+  .chat-window.dark-mode .action-btn.enlace {
+    background: transparent;
+    border-color: var(--tfw-primary-color);
+    color: var(--tfw-primary-color);
+  }
+
   .chat-window.dark-mode .suggestion-chip {
     background: #1e293b;
     border-color: var(--tfw-primary-color);

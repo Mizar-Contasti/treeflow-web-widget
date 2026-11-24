@@ -20,11 +20,33 @@ function esc(valor) {
 //
 // Se escapa ANTES de aplicar los marcadores, así que lo único que llega a ser
 // HTML son las etiquetas que pone esta función; el texto del bot nunca.
-export function conFormato(texto) {
+function enLinea(texto) {
   return esc(texto)
     .replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*([^*]+?)\*/g, '<em>$1</em>')
     .replace(/__([^_]+?)__/g, '<u>$1</u>');
+}
+
+// El tamaño de cada línea (v1.3.20), con un prefijo al principio, como en Discord:
+// `# ` título, `## ` subtítulo, `-# ` pequeño. Lo ponen los botones de tamaño del
+// editor de Treeflow.
+const PREFIJO_DE_TAMANO = /^(##|#|-#) /;
+const CLASE_DE_TAMANO = { '#': 'tfw-titulo', '##': 'tfw-subtitulo', '-#': 'tfw-pequeno' };
+
+export function conFormato(texto) {
+  const lineas = String(texto == null ? '' : texto).split('\n');
+  // Sin ninguna línea con tamaño, como siempre (una negrita puede abarcar varias líneas).
+  if (!lineas.some((linea) => PREFIJO_DE_TAMANO.test(linea))) {
+    return enLinea(texto);
+  }
+  return lineas
+    .map((linea) => {
+      const m = PREFIJO_DE_TAMANO.exec(linea);
+      return m
+        ? `<span class="${CLASE_DE_TAMANO[m[1]]}">${enLinea(linea.slice(m[0].length))}</span>`
+        : enLinea(linea);
+    })
+    .join('\n');
 }
 
 // «Salto de mensaje» (v1.3.18): `{ "type": "message_break", "align": "vertical", "items": [] }`.
@@ -344,8 +366,12 @@ function renderButtons(block) {
 
   if (items.length === 0) return '';
 
+  // En horizontal (v1.3.20) van en fila y bajan de renglón cuando no caben, como en
+  // el widget de la app (RichButtons.tsx). Antes el `align` se ignoraba y siempre
+  // salían en columna, cada uno a todo el ancho.
+  const horizontal = block.align === 'horizontal' || block.layout === 'horizontal';
   return `
-    <div class="rich-card-actions" style="border: none; padding: 0;">
+    <div class="rich-card-actions rich-buttons${horizontal ? ' horizontal' : ''}" style="border: none; padding: 0;">
       ${items.map(action => renderAction(action)).join('')}
     </div>
   `;
