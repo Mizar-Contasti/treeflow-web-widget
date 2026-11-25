@@ -347,6 +347,9 @@ El texto se escapa antes de aplicar el formato: lo único que llega a ser HTML s
 
 Un bloque `buttons` con `"align": "horizontal"` (o `"layout": "horizontal"`) pone los botones en fila, y los que no caben bajan al renglón siguiente (`flex-wrap`), como en el widget de la app. Sin eso, o con `"vertical"`, van uno debajo de otro a todo el ancho. Hasta la 1.3.19 el widget ignoraba la alineación y siempre los apilaba. Desde la 1.3.20 los botones también tienen su estilo de modo oscuro.
 
+- Desde la 1.3.21 cada botón en horizontal mide lo que su texto (`flex: 0 0 auto`, nunca más ancho que el globo: un texto larguísimo se parte dentro del botón), con el mismo espacio de 8 px entre botones y entre renglones.
+- `"fillGaps": true` (**Rellenar huecos** en el editor, sólo en horizontal): cada botón va al primer renglón donde cabe, así uno corto sube al hueco que dejó uno largo en un renglón de arriba. El orden visual puede cambiar (con `order` de CSS; el orden del HTML, y por tanto el del teclado, sigue siendo el original). Se recalcula si cambia el ancho del chat.
+
 ## 🔔 Sonido al llegar un mensaje
 
 Desde la 1.3.20 el widget puede sonar cuando responde el bot o un asesor. Se activa en Treeflow (Canales › Web › Funcionalidad) y llega por la config remota; también vale en `window.treeflowConfig`:

@@ -3,6 +3,7 @@ import { ICONS, getIconHtml } from './icons.js';
 import { renderRichMessage, conFormato, partirEnBurbujas } from './renderers.js';
 import { hayWebCrypto, cifrar, descifrar } from './cifrado.js';
 import { tocarSonido } from './sonido.js';
+import { rellenarHuecos } from './rellenoDeHuecos.js';
 import {
   getDeviceType, resolveMaximizeDevices, resolveHeaderButtons, opensFullscreen, getOpenSize, getLauncherSize,
   OPEN_MS, CLOSE_MS,
@@ -1465,6 +1466,8 @@ class TreeFlowWidget extends HTMLElement {
 
     wrapper.appendChild(messageDiv);
     messagesContainer.appendChild(wrapper);
+    // Ya en la página, con su ancho: los botones con «Rellenar huecos» se pueden medir.
+    if (html !== undefined) rellenarHuecos(messageDiv);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
   }
 

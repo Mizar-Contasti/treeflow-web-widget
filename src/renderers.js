@@ -370,8 +370,10 @@ function renderButtons(block) {
   // el widget de la app (RichButtons.tsx). Antes el `align` se ignoraba y siempre
   // salían en columna, cada uno a todo el ancho.
   const horizontal = block.align === 'horizontal' || block.layout === 'horizontal';
+  // «Rellenar huecos» (v1.3.21): los acomoda rellenarHuecos() al pintarse la burbuja.
+  const rellenar = horizontal && block.fillGaps === true;
   return `
-    <div class="rich-card-actions rich-buttons${horizontal ? ' horizontal' : ''}" style="border: none; padding: 0;">
+    <div class="rich-card-actions rich-buttons${horizontal ? ' horizontal' : ''}${rellenar ? ' rellenar' : ''}" style="border: none; padding: 0;">
       ${items.map(action => renderAction(action)).join('')}
     </div>
   `;

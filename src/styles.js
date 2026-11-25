@@ -1080,10 +1080,15 @@ export const WIDGET_STYLES = `
     flex-wrap: wrap;
   }
 
+  /* Cada botón, un chip del ancho de su texto: no crece para llenar la fila; el que no
+     cabe baja de renglón, y uno más largo que el globo parte su texto en vez de desbordar.
+     Sin el margin-top de los botones en columna, el gap es el mismo en las dos direcciones. */
   .rich-buttons.horizontal .action-btn {
     width: auto;
-    flex: 1 1 auto;
-    min-width: 120px;
+    flex: 0 0 auto;
+    max-width: 100%;
+    margin-top: 0;
+    overflow-wrap: anywhere;
   }
 
   /* Los enlaces van perfilados, como en la app: llevan a otro sitio y conviene
